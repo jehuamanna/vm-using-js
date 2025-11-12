@@ -77,31 +77,33 @@ function App() {
           <ThemeToggle />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 md:items-start">
-          <Card className="flex flex-col h-full">
-            <CardHeader>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card className="flex flex-col">
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Demo 1: Simple Addition</CardTitle>
               <CardDescription>Calculate 5 + 3</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col flex-1 space-y-6">
-              <div className="space-y-2 flex-shrink-0">
+            <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6">
+              <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed min-h-[120px]">
-                  PUSH 5<br />
-                  PUSH 3<br />
-                  ADD<br />
-                  PRINT<br />
-                  HALT
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[140px] flex items-start">
+                  <div>
+                    PUSH 5<br />
+                    PUSH 3<br />
+                    ADD<br />
+                    PRINT<br />
+                    HALT
+                  </div>
                 </div>
               </div>
               
-              <div className="flex justify-center flex-shrink-0">
+              <div className="flex justify-center h-[44px] items-center">
                 <Button onClick={runDemo1} className="min-w-[140px]">
                   Run Demo 1
                 </Button>
               </div>
               
-              <div className="space-y-2 flex-1 flex flex-col">
+              <div className="space-y-2 flex flex-col min-h-0">
                 <label className="text-sm font-semibold text-foreground">Output</label>
                 <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border flex-1">
                   {output1}
@@ -110,32 +112,34 @@ function App() {
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col h-full">
-            <CardHeader>
+          <Card className="flex flex-col">
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Demo 2: Arithmetic Operations</CardTitle>
               <CardDescription>Calculate (10 - 3) * 2</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col flex-1 space-y-6">
-              <div className="space-y-2 flex-shrink-0">
+            <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6">
+              <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed min-h-[120px]">
-                  PUSH 10<br />
-                  PUSH 3<br />
-                  SUB<br />
-                  PUSH 2<br />
-                  MUL<br />
-                  PRINT<br />
-                  HALT
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[140px] flex items-start">
+                  <div>
+                    PUSH 10<br />
+                    PUSH 3<br />
+                    SUB<br />
+                    PUSH 2<br />
+                    MUL<br />
+                    PRINT<br />
+                    HALT
+                  </div>
                 </div>
               </div>
               
-              <div className="flex justify-center flex-shrink-0">
+              <div className="flex justify-center h-[44px] items-center">
                 <Button onClick={runDemo2} className="min-w-[140px]">
                   Run Demo 2
                 </Button>
               </div>
               
-              <div className="space-y-2 flex-1 flex flex-col">
+              <div className="space-y-2 flex flex-col min-h-0">
                 <label className="text-sm font-semibold text-foreground">Output</label>
                 <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border flex-1">
                   {output2}
