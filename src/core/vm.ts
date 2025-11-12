@@ -1,5 +1,5 @@
 /**
- * Episode 1-3: Tiny VM with Control Flow and Memory
+ * Episode 1-4: Tiny VM with Control Flow, Memory, and I/O
  * A minimal stack-based virtual machine implementation
  */
 
@@ -15,6 +15,7 @@ export const OPCODES = {
   JMP_IF_NEG: 0x08,  // Episode 2: Jump if top of stack is negative
   LOAD: 0x09,        // Episode 3: Load value from memory address
   STORE: 0x0A,       // Episode 3: Store value to memory address
+  READ: 0x0B,        // Episode 4: Read value from input
   HALT: 0x00
 } as const;
 
@@ -26,9 +27,24 @@ export class TinyVM {
   pc: number = 0;
   running: boolean = false;
   output: number[] = [];
+  inputQueue: number[] = []; // Episode 4: Queue for input values
 
   constructor(memorySize: number = 256) {
     this.memory = new Array(memorySize).fill(0);
+  }
+
+  /**
+   * Add input value to the input queue
+   */
+  addInput(value: number): void {
+    this.inputQueue.push(value);
+  }
+
+  /**
+   * Clear the input queue
+   */
+  clearInput(): void {
+    this.inputQueue = [];
   }
 
   /**
@@ -158,6 +174,16 @@ export class TinyVM {
           this.pc++;
           break;
 
+        case OPCODES.READ:
+          // Read value from input queue and push onto stack
+          if (this.inputQueue.length === 0) {
+            throw new Error('No input available. Use addInput() to provide input values.');
+          }
+          const inputValue = this.inputQueue.shift()!;
+          this.push(inputValue);
+          this.pc++;
+          break;
+
         case OPCODES.HALT:
           this.running = false;
           this.pc++;
@@ -180,6 +206,7 @@ export class TinyVM {
     this.pc = 0;
     this.running = false;
     this.output = [];
+    this.inputQueue = [];
   }
 }
 

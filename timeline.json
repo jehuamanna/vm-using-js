@@ -51,6 +51,26 @@
         "Variable-like behavior",
         "Accumulator pattern"
       ]
+    },
+    {
+      "number": 4,
+      "title": "Input and Output",
+      "commit": "feat(lesson): 04 - Input and Output",
+      "files": [
+        "src/core/vm.ts",
+        "src/pages/Episode04.tsx",
+        "src/components/ui/input.tsx",
+        "src/components/ui/label.tsx",
+        "scripts/lessons/04_input_and_output.md"
+      ],
+      "duration": "20-25 minutes",
+      "topics": [
+        "Input/Output (I/O)",
+        "Input queue implementation",
+        "READ instruction",
+        "Interactive programming",
+        "Calculator demo"
+      ]
     }
   ],
   "last_updated": "2024-01-01"

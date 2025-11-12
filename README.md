@@ -33,6 +33,7 @@ npm run preview
 - ✅ **Episode 1**: Introduction & Tiny VM — Basic stack-based VM with PUSH, ADD, SUB, MUL, PRINT
 - ✅ **Episode 2**: Branching and Loops — Control flow with JMP, JMP_IF_ZERO, JMP_IF_NEG
 - ✅ **Episode 3**: Memory & Variables — Memory array with LOAD and STORE instructions
+- ✅ **Episode 4**: Input and Output — READ instruction with interactive calculator
 
 [More episodes coming soon...]
 
