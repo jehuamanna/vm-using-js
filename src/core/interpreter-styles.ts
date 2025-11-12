@@ -153,7 +153,6 @@ export class SwitchInterpreter extends TinyVM {
       }
     }
 
-    const endTime = performance.now()
     return this.output
   }
 }
@@ -296,7 +295,6 @@ export class DispatchTableInterpreter extends TinyVM {
   private bytecode?: number[]
 
   execute(bytecode: number[], debugMode: boolean = false): number[] {
-    const startTime = performance.now()
     this.bytecode = bytecode
     this.pc = 0
     this.running = true
@@ -330,7 +328,6 @@ export class DispatchTableInterpreter extends TinyVM {
       }
     }
 
-    const endTime = performance.now()
     return this.output
   }
 }
@@ -345,11 +342,12 @@ export function benchmarkInterpreter(
 ): InterpreterResult {
   const startTime = performance.now()
   let instructionsExecuted = 0
+  let lastOutput: number[] = []
 
   for (let i = 0; i < iterations; i++) {
     interpreter.reset()
     try {
-      interpreter.execute(bytecode, false)
+      lastOutput = interpreter.execute(bytecode, false)
       instructionsExecuted += bytecode.length
     } catch (error) {
       // Ignore errors for benchmarking

@@ -3,8 +3,6 @@
  * Converts human-readable opcodes to bytecode with macro support
  */
 
-import { OPCODES } from './vm'
-
 export interface OpcodeInfo {
   name: string
   value: number
