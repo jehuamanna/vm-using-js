@@ -10,7 +10,7 @@ import { Input } from '../components/ui/input'
 import { useTheme } from '../components/theme-provider'
 import { 
   Loader2, Code2, Play, Pause, StepForward, SkipForward, 
-  RotateCcw, ChevronDown, ChevronUp, FileCode, TreePine, 
+  RotateCcw, FileCode, TreePine, 
   AlertTriangle, Bug, Eye, List, MemoryStick, Circle
 } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
