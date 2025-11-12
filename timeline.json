@@ -223,6 +223,30 @@
         "Label patching",
         "High-level language support"
       ]
+    },
+    {
+      "number": 12,
+      "title": "Functions in the Language",
+      "commit": "feat(lesson): 12 - Functions in the Language",
+      "files": [
+        "src/compiler/lexer.ts",
+        "src/compiler/parser.ts",
+        "src/compiler/codegen.ts",
+        "src/pages/Episode12.tsx",
+        "src/App.tsx",
+        "scripts/lessons/12_functions_in_the_language.md"
+      ],
+      "duration": "25-30 minutes",
+      "topics": [
+        "Function definitions",
+        "Function calls",
+        "Parameters and arguments",
+        "Return statements",
+        "Function address resolution",
+        "Frame-relative locals",
+        "Call stack integration",
+        "High-level function syntax"
+      ]
     }
   ],
   "last_updated": "2024-01-01"

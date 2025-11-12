@@ -16,6 +16,8 @@ export enum TokenType {
   WHILE = 'WHILE',
   PRINT = 'PRINT',
   READ = 'READ',
+  FN = 'FN',
+  RETURN = 'RETURN',
   
   // Operators
   PLUS = 'PLUS',
@@ -32,6 +34,7 @@ export enum TokenType {
   
   // Delimiters
   SEMICOLON = 'SEMICOLON',
+  COMMA = 'COMMA',
   LEFT_PAREN = 'LEFT_PAREN',
   RIGHT_PAREN = 'RIGHT_PAREN',
   LEFT_BRACE = 'LEFT_BRACE',
@@ -56,6 +59,8 @@ const KEYWORDS: Record<string, TokenType> = {
   'while': TokenType.WHILE,
   'print': TokenType.PRINT,
   'read': TokenType.READ,
+  'fn': TokenType.FN,
+  'return': TokenType.RETURN,
 }
 
 export class Lexer {
@@ -311,6 +316,9 @@ export class Lexer {
       case ';':
         this.advance()
         return { type: TokenType.SEMICOLON, value: ';', line: startLine, column: startColumn }
+      case ',':
+        this.advance()
+        return { type: TokenType.COMMA, value: ',', line: startLine, column: startColumn }
       case '(':
         this.advance()
         return { type: TokenType.LEFT_PAREN, value: '(', line: startLine, column: startColumn }

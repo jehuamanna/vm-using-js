@@ -9,17 +9,59 @@ import { OPCODES } from '../core/vm'
 export class CodeGenerator {
   private bytecode: number[] = []
   private variableMap: Map<string, number> = new Map()
+  private functionMap: Map<string, number> = new Map() // Function name -> address
   private nextVariableAddress: number = 0
   private labelCounter: number = 0
+  private functionBodies: Array<{ name: string; body: Statement[]; parameters: string[] }> = []
 
   generate(ast: Program): number[] {
     this.bytecode = []
     this.variableMap.clear()
+    this.functionMap.clear()
+    this.functionBodies = []
     this.nextVariableAddress = 0
     this.labelCounter = 0
 
+    // First pass: collect function definitions
     for (const stmt of ast.statements) {
-      this.generateStatement(stmt)
+      if (stmt.type === 'FunctionDefinition') {
+        this.functionBodies.push({
+          name: stmt.name,
+          body: stmt.body,
+          parameters: stmt.parameters,
+        })
+      }
+    }
+
+    // Generate functions first (so we know their addresses)
+    const mainCodeStartLabel = this.newLabel()
+    // Jump to main code (will be patched later)
+    this.bytecode.push(OPCODES.JMP)
+    this.bytecode.push(mainCodeStartLabel)
+
+    // Generate function bodies
+    for (const func of this.functionBodies) {
+      const funcAddress = this.bytecode.length
+      this.functionMap.set(func.name, funcAddress)
+      
+      // Generate function body
+      for (const stmt of func.body) {
+        this.generateStatement(stmt)
+      }
+      
+      // Add return if not already present
+      // (Check if last statement is return - for now, assume explicit return)
+      this.bytecode.push(OPCODES.RET)
+    }
+
+    // Generate main code
+    const mainCodeStart = this.bytecode.length
+    this.patchJump(mainCodeStartLabel, mainCodeStart)
+
+    for (const stmt of ast.statements) {
+      if (stmt.type !== 'FunctionDefinition') {
+        this.generateStatement(stmt)
+      }
     }
 
     // Add HALT at the end
@@ -50,6 +92,12 @@ export class CodeGenerator {
         break
       case 'ReadStatement':
         this.generateReadStatement(stmt)
+        break
+      case 'FunctionDefinition':
+        // Functions are handled in generate() method
+        break
+      case 'ReturnStatement':
+        this.generateReturnStatement(stmt)
         break
     }
   }
@@ -289,9 +337,42 @@ export class CodeGenerator {
         this.bytecode.push(varAddress)
         break
 
+      case 'FunctionCall':
+        this.generateFunctionCall(expr)
+        break
+
       default:
         throw new Error(`Unknown expression type: ${(expr as any).type}`)
     }
+  }
+
+  private generateFunctionCall(expr: { name: string; arguments: Expression[] }): void {
+    // Push arguments in order (left to right)
+    for (const arg of expr.arguments) {
+      this.generateExpression(arg)
+    }
+
+    // Get function address
+    const funcAddress = this.functionMap.get(expr.name)
+    if (funcAddress === undefined) {
+      throw new Error(`Undefined function: ${expr.name}`)
+    }
+
+    // Call function
+    this.bytecode.push(OPCODES.CALL)
+    this.bytecode.push(funcAddress)
+    // Result is left on stack
+  }
+
+  private generateReturnStatement(stmt: { value: Expression | null }): void {
+    if (stmt.value) {
+      this.generateExpression(stmt.value)
+    } else {
+      // Push 0 for void return
+      this.bytecode.push(OPCODES.PUSH)
+      this.bytecode.push(0)
+    }
+    this.bytecode.push(OPCODES.RET)
   }
 
   private newLabel(): number {
@@ -310,6 +391,12 @@ export class CodeGenerator {
         this.bytecode[i + 1] = address
       }
     }
+  }
+
+  private patchFunctionCalls(): void {
+    // We need to track which CALL instructions need patching
+    // For now, function addresses are set correctly during generation
+    // This method is a placeholder for future optimization
   }
 }
 

@@ -13,12 +13,15 @@ export type ASTNode =
   | WhileStatement
   | PrintStatement
   | ReadStatement
+  | FunctionDefinition
+  | ReturnStatement
   | BinaryExpression
   | UnaryExpression
   | NumberLiteral
   | StringLiteral
   | Identifier
   | AssignmentExpression
+  | FunctionCall
 
 export interface Program {
   type: 'Program'
@@ -32,6 +35,8 @@ export type Statement =
   | WhileStatement
   | PrintStatement
   | ReadStatement
+  | FunctionDefinition
+  | ReturnStatement
 
 export interface LetStatement {
   type: 'LetStatement'
@@ -74,6 +79,7 @@ export type Expression =
   | StringLiteral
   | Identifier
   | AssignmentExpression
+  | FunctionCall
 
 export interface BinaryExpression {
   type: 'BinaryExpression'
@@ -107,6 +113,24 @@ export interface AssignmentExpression {
   type: 'AssignmentExpression'
   name: string
   value: Expression
+}
+
+export interface FunctionDefinition {
+  type: 'FunctionDefinition'
+  name: string
+  parameters: string[]
+  body: Statement[]
+}
+
+export interface ReturnStatement {
+  type: 'ReturnStatement'
+  value: Expression | null
+}
+
+export interface FunctionCall {
+  type: 'FunctionCall'
+  name: string
+  arguments: Expression[]
 }
 
 export class Parser {
@@ -212,6 +236,10 @@ export class Parser {
         return this.parsePrintStatement()
       case TokenType.READ:
         return this.parseReadStatement()
+      case TokenType.FN:
+        return this.parseFunctionDefinition()
+      case TokenType.RETURN:
+        return this.parseReturnStatement()
       case TokenType.SEMICOLON:
         this.advance()
         return null
@@ -305,6 +333,49 @@ export class Parser {
     return {
       type: 'ReadStatement',
       variable,
+    }
+  }
+
+  private parseFunctionDefinition(): FunctionDefinition {
+    this.expect(TokenType.FN)
+    const name = this.expect(TokenType.IDENTIFIER).value as string
+    this.expect(TokenType.LEFT_PAREN)
+    
+    // Parse parameters
+    const parameters: string[] = []
+    if (this.current().type !== TokenType.RIGHT_PAREN) {
+      parameters.push(this.expect(TokenType.IDENTIFIER).value as string)
+      while (this.current().type === TokenType.COMMA) {
+        this.advance() // consume comma
+        parameters.push(this.expect(TokenType.IDENTIFIER).value as string)
+      }
+    }
+    
+    this.expect(TokenType.RIGHT_PAREN)
+    this.expect(TokenType.LEFT_BRACE)
+    const body = this.parseBlock()
+    this.expect(TokenType.RIGHT_BRACE)
+
+    return {
+      type: 'FunctionDefinition',
+      name,
+      parameters,
+      body,
+    }
+  }
+
+  private parseReturnStatement(): ReturnStatement {
+    this.expect(TokenType.RETURN)
+    
+    let value: Expression | null = null
+    if (this.current().type !== TokenType.SEMICOLON) {
+      value = this.parseExpression()
+    }
+    
+    this.expect(TokenType.SEMICOLON)
+    return {
+      type: 'ReturnStatement',
+      value,
     }
   }
 
@@ -480,9 +551,16 @@ export class Parser {
 
       case TokenType.IDENTIFIER:
         this.advance()
+        const name = token.value as string
+        
+        // Check if it's a function call (identifier followed by '(')
+        if (this.current().type === TokenType.LEFT_PAREN) {
+          return this.parseFunctionCall(name)
+        }
+        
         return {
           type: 'Identifier',
-          name: token.value as string,
+          name,
         }
 
       case TokenType.LEFT_PAREN:
@@ -495,6 +573,27 @@ export class Parser {
         throw new Error(
           `Unexpected token ${token.type} at line ${token.line}, column ${token.column}`
         )
+    }
+  }
+
+  private parseFunctionCall(name: string): FunctionCall {
+    this.expect(TokenType.LEFT_PAREN)
+    
+    const args: Expression[] = []
+    if (this.current().type !== TokenType.RIGHT_PAREN) {
+      args.push(this.parseExpression())
+      while (this.current().type === TokenType.COMMA) {
+        this.advance() // consume comma
+        args.push(this.parseExpression())
+      }
+    }
+    
+    this.expect(TokenType.RIGHT_PAREN)
+    
+    return {
+      type: 'FunctionCall',
+      name,
+      arguments: args,
     }
   }
 }
