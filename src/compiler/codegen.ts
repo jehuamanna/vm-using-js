@@ -11,6 +11,7 @@ export class CodeGenerator {
   private variableMap: Map<string, number> = new Map()
   private functionMap: Map<string, number> = new Map() // Function name -> address
   private exportMap: Map<string, number> = new Map() // Exported symbol name -> address
+  private importedFunctions: Set<string> = new Set() // Functions imported from other modules
   
   // Get variable map for debugging
   getVariableMap(): Map<string, number> {
@@ -43,32 +44,26 @@ export class CodeGenerator {
     this.exportMap.clear()
     this.functionBodies = []
     this.exportedVariables.clear()
+    this.importedFunctions.clear()
     this.nextVariableAddress = 0
     this.labelCounter = 0
 
-    // First pass: collect exports and function definitions
-    let nextStmt: Statement | null = null
-    for (let i = 0; i < ast.statements.length; i++) {
-      const stmt = ast.statements[i]
-      nextStmt = i + 1 < ast.statements.length ? ast.statements[i + 1] : null
-      
-      if (stmt.type === 'ExportStatement') {
-        // Mark the next statement as exported
-        if (nextStmt && nextStmt.type === 'FunctionDefinition') {
-          // Will mark in functionBodies
-        } else if (nextStmt && nextStmt.type === 'LetStatement') {
-          this.exportedVariables.add(nextStmt.name)
-        }
-      } else if (stmt.type === 'FunctionDefinition') {
-        // Check if previous statement was export
-        const prevStmt = i > 0 ? ast.statements[i - 1] : null
-        const exported = prevStmt?.type === 'ExportStatement' && prevStmt.name === stmt.name
+    // First pass: collect function definitions and imports
+    for (const stmt of ast.statements) {
+      if (stmt.type === 'FunctionDefinition') {
         this.functionBodies.push({
           name: stmt.name,
           body: stmt.body,
           parameters: stmt.parameters,
-          exported,
+          exported: stmt.exported || false,
         })
+      } else if (stmt.type === 'LetStatement' && stmt.exported) {
+        this.exportedVariables.add(stmt.name)
+      } else if (stmt.type === 'ImportStatement') {
+        // Track imported function names (we assume all imports are functions for now)
+        for (const name of stmt.names) {
+          this.importedFunctions.add(name)
+        }
       }
     }
 
@@ -503,6 +498,14 @@ export class CodeGenerator {
     // Get function address
     const funcAddress = this.functionMap.get(expr.name)
     if (funcAddress === undefined) {
+      // Check if it's an imported function - if so, we'll resolve it during linking
+      if (this.importedFunctions.has(expr.name)) {
+        // For now, use a placeholder address (0) - the linker should patch this
+        // In a full implementation, we'd use a relocation table
+        this.bytecode.push(OPCODES.CALL)
+        this.bytecode.push(0) // Placeholder - will be patched by linker
+        return
+      }
       throw new Error(`Undefined function: ${expr.name}`)
     }
 

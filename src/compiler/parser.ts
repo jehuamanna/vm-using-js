@@ -50,6 +50,7 @@ export interface LetStatement {
   type: 'LetStatement'
   name: string
   value: Expression
+  exported?: boolean
 }
 
 export interface ExpressionStatement {
@@ -128,6 +129,7 @@ export interface FunctionDefinition {
   name: string
   parameters: string[]
   body: Statement[]
+  exported?: boolean
 }
 
 export interface ReturnStatement {
@@ -269,6 +271,28 @@ export class Parser {
         return this.parseReadStatement()
       case TokenType.FN:
         return this.parseFunctionDefinition()
+      case TokenType.EXPORT:
+        // Handle export fn or export let
+        this.advance() // consume export
+        const nextToken = this.current()
+        if (nextToken.type === TokenType.FN) {
+          // export fn name(...) { ... }
+          const func = this.parseFunctionDefinition(true)
+          // Create an export statement to mark this function as exported
+          // We'll insert it before the function in the statements array
+          // For now, we'll handle this by checking the previous statement in codegen
+          return func
+        } else if (nextToken.type === TokenType.LET) {
+          // export let name = ...
+          const letStmt = this.parseLetStatement()
+          // Mark as exported
+          letStmt.exported = true
+          return letStmt
+        } else {
+          throw new Error(
+            `Expected 'fn' or 'let' after 'export', got ${nextToken.type} at line ${nextToken.line}, column ${nextToken.column}`
+          )
+        }
       case TokenType.RETURN:
         return this.parseReturnStatement()
       case TokenType.TRY:
@@ -277,8 +301,6 @@ export class Parser {
         return this.parseThrowStatement()
       case TokenType.IMPORT:
         return this.parseImportStatement()
-      case TokenType.EXPORT:
-        return this.parseExportStatement()
       case TokenType.SEMICOLON:
         this.advance()
         return null
@@ -375,7 +397,7 @@ export class Parser {
     }
   }
 
-  private parseFunctionDefinition(): FunctionDefinition {
+  private parseFunctionDefinition(exported: boolean = false): FunctionDefinition {
     this.expect(TokenType.FN)
     const name = this.expect(TokenType.IDENTIFIER).value as string
     this.expect(TokenType.LEFT_PAREN)
@@ -400,6 +422,7 @@ export class Parser {
       name,
       parameters,
       body,
+      exported,
     }
   }
 

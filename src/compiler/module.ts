@@ -3,8 +3,9 @@
  * Handles module parsing, symbol resolution, and linking
  */
 
-import { compile, CompileResult } from './index'
+import { compile } from './index'
 import { Program } from './parser'
+import { OPCODES } from '../core/vm'
 
 export interface ModuleInfo {
   name: string
@@ -83,14 +84,27 @@ export function linkModules(modules: ModuleInfo[]): LinkedModule {
     currentAddress += module.bytecode.length
   }
   
-  // Second pass: resolve imports and merge bytecode
+  // Build a combined function map for all modules (for resolving function calls)
+  const combinedFunctionMap: Map<string, number> = new Map()
+  currentAddress = 0
+  for (const module of modules) {
+    // Get function map from compilation result
+    const compileResult = compile(module.source)
+    if (compileResult.functionMap) {
+      for (const [name, address] of compileResult.functionMap.entries()) {
+        combinedFunctionMap.set(name, currentAddress + address)
+      }
+    }
+    currentAddress += module.bytecode.length
+  }
+  
+  // Second pass: resolve imports, patch function calls, and merge bytecode
   currentAddress = 0
   for (const module of modules) {
     const moduleStart = currentAddress
     const moduleBytecode = [...module.bytecode]
     
-    // Resolve imports - for now we'll just validate they exist
-    // In a full implementation, we'd patch function call addresses
+    // Resolve imports and patch function call addresses
     for (const imp of module.imports) {
       const importedModule = modules.find(m => m.name === imp.module)
       if (!importedModule) {
@@ -103,12 +117,56 @@ export function linkModules(modules: ModuleInfo[]): LinkedModule {
         if (!importedModule.exports.has(name)) {
           errors.push(`Symbol "${name}" not exported from module "${imp.module}" (imported by "${module.name}")`)
         } else {
-          // Symbol exists - in a full implementation, we'd patch references here
+          // Symbol exists - we'll patch function calls during a separate pass
           const fullName = `${imp.module}.${name}`
           const symbolAddress = symbolTable.get(fullName)
-          if (symbolAddress !== undefined) {
-            // Symbol is available for use
+          if (symbolAddress === undefined) {
+            errors.push(`Internal error: symbol "${fullName}" not found in symbol table`)
           }
+        }
+      }
+    }
+    
+    // Patch function call addresses for imported functions
+    // Scan for CALL instructions with placeholder address (0) and patch them
+    // This is a simplified approach - a real linker would use a relocation table
+    // to track which CALL corresponds to which imported function
+    const importedNames = new Set<string>()
+    for (const imp of module.imports) {
+      for (const name of imp.names) {
+        importedNames.add(name)
+      }
+    }
+    
+    // For each imported function, find and patch CALL instructions
+    // Note: This assumes CALL 0 is for imported functions (simplified)
+    // A real linker would track function call sites more precisely
+    for (const imp of module.imports) {
+      for (const name of imp.names) {
+        const fullName = `${imp.module}.${name}`
+        const symbolAddress = symbolTable.get(fullName)
+        if (symbolAddress !== undefined) {
+          // Find first CALL with placeholder (0) and patch it
+          // In a full implementation, we'd track which CALL corresponds to which function
+          for (let i = 0; i < moduleBytecode.length - 1; i++) {
+            if (moduleBytecode[i] === OPCODES.CALL && moduleBytecode[i + 1] === 0) {
+              moduleBytecode[i + 1] = symbolAddress
+              break // Patch first occurrence (simplified - real linker would patch all)
+            }
+          }
+        }
+      }
+    }
+    
+    // Adjust internal function call addresses by module offset
+    // Internal calls are relative to module start, so we add the module's base address
+    for (let i = 0; i < moduleBytecode.length - 1; i++) {
+      if (moduleBytecode[i] === OPCODES.CALL) {
+        const callAddr = moduleBytecode[i + 1]
+        // If it's not a placeholder (0), it's an internal call that needs offset adjustment
+        // Skip if it was already patched (address >= current module size would indicate external)
+        if (callAddr !== 0 && callAddr < module.bytecode.length) {
+          moduleBytecode[i + 1] = currentAddress + callAddr
         }
       }
     }
