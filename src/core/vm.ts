@@ -168,6 +168,11 @@ export class TinyVM {
       this.executionTrace = [];
       this.paused = false;
       this.stepMode = debugMode ? 'step-into' : 'run';
+    } else {
+      // When resuming, make sure we're not paused
+      if (this.paused) {
+        this.paused = false;
+      }
     }
     this.debugMode = debugMode;
     this.currentBytecode = bytecode;
@@ -175,7 +180,7 @@ export class TinyVM {
     while (this.running && this.pc < bytecode.length) {
       const opcode = bytecode[this.pc];
       
-      // Episode 14: Check for breakpoints
+      // Episode 14: Check for breakpoints (before executing)
       if (this.debugMode && this.breakpoints.has(this.pc)) {
         const bp = this.breakpoints.get(this.pc)!;
         if (bp.enabled) {
@@ -191,40 +196,7 @@ export class TinyVM {
         }
       }
       
-      // Episode 14: Handle step modes
-      if (this.debugMode && this.stepMode !== 'run') {
-        if (this.stepMode === 'step-into') {
-          // Always pause on step-into
-          this.paused = true;
-          this.stepMode = 'paused';
-        } else if (this.stepMode === 'step-over') {
-          // Pause if we're back at the same call stack depth
-          if (this.callStack.length <= this.stepOverDepth) {
-            this.paused = true;
-            this.stepMode = 'paused';
-            this.stepOverDepth = -1;
-          }
-        } else if (this.stepMode === 'step-out') {
-          // Pause if we've returned to a shallower call stack depth
-          if (this.callStack.length < this.stepOutDepth) {
-            this.paused = true;
-            this.stepMode = 'paused';
-            this.stepOutDepth = -1;
-          }
-        }
-        
-        if (this.paused) {
-          const step = this.createExecutionStep(opcode);
-          this.executionTrace.push(step);
-          if (this.stepCallback) {
-            this.stepCallback(step);
-          }
-          // Wait for user to continue
-          return this.output;
-        }
-      }
-      
-      // Episode 6: Debug mode - record execution step
+      // Episode 6: Debug mode - record execution step (before executing)
       if (this.debugMode) {
         const step = this.createExecutionStep(opcode);
         this.executionTrace.push(step);
@@ -362,9 +334,11 @@ export class TinyVM {
             frameBase: frameBase
           });
           
-          // Episode 14: Handle step-over - if stepping over, don't pause in function
+          // Episode 14: Handle step-over - if stepping over, remember the depth before the call
           if (this.debugMode && this.stepMode === 'step-over' && this.stepOverDepth === -1) {
-            this.stepOverDepth = this.callStack.length - 1;
+            // We're about to call a function, remember the depth before the call
+            // We'll pause when we return to this depth
+            this.stepOverDepth = this.callStack.length;
           }
           
           // Jump to function
@@ -512,6 +486,42 @@ export class TinyVM {
         default:
           throw new Error(`Unknown opcode: 0x${opcode.toString(16)} at PC=${this.pc}`);
       }
+      
+      // Episode 14: Handle step modes AFTER executing instruction
+      if (this.debugMode && this.stepMode !== 'run') {
+        if (this.stepMode === 'step-into') {
+          // Always pause after executing one instruction
+          this.paused = true;
+          this.stepMode = 'paused';
+        } else if (this.stepMode === 'step-over') {
+          // For step-over:
+          // - If stepOverDepth is -1, we just started step-over on a non-CALL instruction, so pause now
+          // - If stepOverDepth is set, we're stepping over a function call, pause when back at that depth
+          if (this.stepOverDepth === -1) {
+            // Just started step-over on a non-CALL instruction, pause after one instruction
+            this.paused = true;
+            this.stepMode = 'paused';
+          } else if (this.callStack.length <= this.stepOverDepth) {
+            // We're back at or above the depth we started at, pause
+            this.paused = true;
+            this.stepMode = 'paused';
+            this.stepOverDepth = -1;
+          }
+        } else if (this.stepMode === 'step-out') {
+          // Pause if we've returned to a shallower call stack depth
+          if (this.stepOutDepth >= 0 && this.callStack.length < this.stepOutDepth) {
+            this.paused = true;
+            this.stepMode = 'paused';
+            this.stepOutDepth = -1;
+          }
+        }
+        
+        if (this.paused) {
+          // Wait for user to continue
+          return this.output;
+        }
+      }
+      
       } catch (error) {
         // Episode 6: Enhanced error handling with context
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -689,7 +699,9 @@ export class TinyVM {
     if (this.paused) {
       this.paused = false;
       this.stepMode = 'step-over';
-      this.stepOverDepth = this.callStack.length;
+      // Set to -1 initially - if the next instruction is a CALL, it will set stepOverDepth
+      // Otherwise, we'll pause after executing one instruction
+      this.stepOverDepth = -1;
       this.stepOutDepth = -1;
     }
   }

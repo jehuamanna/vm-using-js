@@ -118,12 +118,18 @@ print result;`)
     setIsPaused(false)
     setOutput('Debugging started. Execution will pause at first instruction or breakpoint.\n')
 
-    // Start execution
+    // Start execution - it will pause at first instruction in step-into mode
     try {
-      vm.execute(compilationResult.bytecode, true)
+      vm.execute(compilationResult.bytecode, true, false)
+      // After first execute, check if we paused
       setIsPaused(vm.paused)
       if (vm.paused) {
-        setCurrentStep(vm.getExecutionTrace()[vm.getExecutionTrace().length - 1] || null)
+        const trace = vm.getExecutionTrace()
+        setCurrentStep(trace[trace.length - 1] || null)
+      } else {
+        // If we didn't pause, execution completed immediately
+        updateOutput()
+        setIsDebugging(false)
       }
     } catch (error) {
       setOutput(`Error:\n${error instanceof Error ? error.message : String(error)}`)
