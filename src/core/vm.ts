@@ -23,6 +23,14 @@ export const OPCODES = {
   ENTER_TRY: 0x10,   // Episode 13: Enter try block (address of catch handler)
   LEAVE_TRY: 0x11,   // Episode 13: Leave try block
   THROW: 0x12,       // Episode 13: Throw exception (error code on stack)
+  MALLOC: 0x13,      // Episode 16: Allocate heap memory (size on stack, returns address)
+  LOAD8: 0x14,       // Episode 16: Load 8-bit value from heap address
+  LOAD32: 0x15,      // Episode 16: Load 32-bit value from heap address
+  STORE8: 0x16,      // Episode 16: Store 8-bit value to heap address
+  STORE32: 0x17,     // Episode 16: Store 32-bit value to heap address
+  LOAD32_STACK: 0x18, // Episode 16: Load 32-bit value from heap (address on stack)
+  STORE32_STACK: 0x19, // Episode 16: Store 32-bit value to heap (address on stack)
+  STORE8_STACK: 0x1A, // Episode 16: Store 8-bit value to heap (address on stack)
   HALT: 0x00
 } as const;
 
@@ -67,6 +75,9 @@ export type StepMode = 'run' | 'step-into' | 'step-over' | 'step-out' | 'paused'
 export class TinyVM {
   stack: number[] = [];
   memory: number[];
+  heap: Uint8Array; // Episode 16: Heap memory for arrays and strings
+  heapSize: number = 1024 * 1024; // 1MB heap
+  heapNext: number = 0; // Next free heap address
   pc: number = 0;
   running: boolean = false;
   output: number[] = [];
@@ -97,6 +108,8 @@ export class TinyVM {
 
   constructor(memorySize: number = 256) {
     this.memory = new Array(memorySize).fill(0);
+    this.heap = new Uint8Array(this.heapSize);
+    this.heapNext = 0;
   }
 
   /**
@@ -478,6 +491,125 @@ export class TinyVM {
           this.exceptionThrown = false;
           break;
 
+        case OPCODES.MALLOC:
+          // Episode 16: Allocate heap memory
+          // Size is on stack, returns heap address
+          const size = this.pop();
+          if (size < 0) {
+            throw new Error(`Invalid allocation size: ${size}`);
+          }
+          if (this.heapNext + size > this.heapSize) {
+            throw new Error(`Heap overflow: cannot allocate ${size} bytes (heap: ${this.heapNext}/${this.heapSize})`);
+          }
+          const heapAddr = this.heapNext;
+          this.heapNext += size;
+          // Zero out the allocated memory
+          this.heap.fill(0, heapAddr, heapAddr + size);
+          this.push(heapAddr);
+          this.pc++;
+          break;
+
+        case OPCODES.LOAD8:
+          // Episode 16: Load 8-bit value from heap
+          this.pc++;
+          const load8Addr = bytecode[this.pc];
+          if (load8Addr < 0 || load8Addr >= this.heapSize) {
+            throw new Error(`Invalid heap address for LOAD8: ${load8Addr}`);
+          }
+          const value8 = this.heap[load8Addr];
+          this.push(value8);
+          this.pc++;
+          break;
+
+        case OPCODES.LOAD32:
+          // Episode 16: Load 32-bit value from heap (little-endian)
+          this.pc++;
+          const load32Addr = bytecode[this.pc];
+          if (load32Addr < 0 || load32Addr + 3 >= this.heapSize) {
+            throw new Error(`Invalid heap address for LOAD32: ${load32Addr}`);
+          }
+          // Read 4 bytes as little-endian 32-bit integer
+          const value32 = this.heap[load32Addr] |
+                         (this.heap[load32Addr + 1] << 8) |
+                         (this.heap[load32Addr + 2] << 16) |
+                         (this.heap[load32Addr + 3] << 24);
+          // Convert unsigned to signed (two's complement)
+          const signedValue32 = value32 | 0; // Sign-extend if needed
+          this.push(signedValue32);
+          this.pc++;
+          break;
+
+        case OPCODES.STORE8:
+          // Episode 16: Store 8-bit value to heap
+          const store8Value = this.pop();
+          this.pc++;
+          const store8Addr = bytecode[this.pc];
+          if (store8Addr < 0 || store8Addr >= this.heapSize) {
+            throw new Error(`Invalid heap address for STORE8: ${store8Addr}`);
+          }
+          this.heap[store8Addr] = store8Value & 0xFF; // Mask to 8 bits
+          this.pc++;
+          break;
+
+        case OPCODES.STORE32:
+          // Episode 16: Store 32-bit value to heap (little-endian)
+          const store32Value = this.pop();
+          this.pc++;
+          const store32Addr = bytecode[this.pc];
+          if (store32Addr < 0 || store32Addr + 3 >= this.heapSize) {
+            throw new Error(`Invalid heap address for STORE32: ${store32Addr}`);
+          }
+          // Write 4 bytes as little-endian 32-bit integer
+          this.heap[store32Addr] = store32Value & 0xFF;
+          this.heap[store32Addr + 1] = (store32Value >> 8) & 0xFF;
+          this.heap[store32Addr + 2] = (store32Value >> 16) & 0xFF;
+          this.heap[store32Addr + 3] = (store32Value >> 24) & 0xFF;
+          this.pc++;
+          break;
+
+        case OPCODES.LOAD32_STACK:
+          // Episode 16: Load 32-bit value from heap (address on stack)
+          const load32StackAddr = this.pop();
+          if (load32StackAddr < 0 || load32StackAddr + 3 >= this.heapSize) {
+            throw new Error(`Invalid heap address for LOAD32_STACK: ${load32StackAddr}`);
+          }
+          // Read 4 bytes as little-endian 32-bit integer
+          const value32Stack = this.heap[load32StackAddr] |
+                             (this.heap[load32StackAddr + 1] << 8) |
+                             (this.heap[load32StackAddr + 2] << 16) |
+                             (this.heap[load32StackAddr + 3] << 24);
+          // Convert unsigned to signed (two's complement)
+          const signedValue32Stack = value32Stack | 0;
+          this.push(signedValue32Stack);
+          this.pc++;
+          break;
+
+        case OPCODES.STORE32_STACK:
+          // Episode 16: Store 32-bit value to heap (address on stack)
+          const store32StackValue = this.pop();
+          const store32StackAddr = this.pop();
+          if (store32StackAddr < 0 || store32StackAddr + 3 >= this.heapSize) {
+            throw new Error(`Invalid heap address for STORE32_STACK: ${store32StackAddr}`);
+          }
+          // Write 4 bytes as little-endian 32-bit integer
+          this.heap[store32StackAddr] = store32StackValue & 0xFF;
+          this.heap[store32StackAddr + 1] = (store32StackValue >> 8) & 0xFF;
+          this.heap[store32StackAddr + 2] = (store32StackValue >> 16) & 0xFF;
+          this.heap[store32StackAddr + 3] = (store32StackValue >> 24) & 0xFF;
+          this.pc++;
+          break;
+
+        case OPCODES.STORE8_STACK:
+          // Episode 16: Store 8-bit value to heap (address on stack)
+          const store8StackValue = this.pop();
+          const store8StackAddr = this.pop();
+          if (store8StackAddr < 0 || store8StackAddr >= this.heapSize) {
+            throw new Error(`Invalid heap address for STORE8_STACK: ${store8StackAddr}`);
+          }
+          this.heap[store8StackAddr] = store8StackValue & 0xFF;
+          this.pc++;
+          break;
+
         case OPCODES.HALT:
           this.running = false;
           this.pc++;
@@ -549,6 +681,8 @@ export class TinyVM {
   reset(): void {
     this.stack = [];
     this.memory.fill(0);
+    this.heap.fill(0); // Episode 16: Reset heap
+    this.heapNext = 0; // Episode 16: Reset heap pointer
     this.pc = 0;
     this.running = false;
     this.output = [];

@@ -349,10 +349,55 @@ export class CodeGenerator {
         break
 
       case 'StringLiteral':
-        // For now, we'll just push the string length
-        // In a real implementation, we'd store strings in memory
+        // Episode 16: Allocate heap memory for string (null-terminated)
+        // String format: [length (4 bytes), chars..., null terminator]
+        const strValue = expr.value
+        const strLength = strValue.length
+        const strSize = 4 + strLength + 1 // 4 bytes for length + chars + null terminator
+        
+        // Allocate heap memory
         this.bytecode.push(OPCODES.PUSH)
-        this.bytecode.push(expr.value.length)
+        this.bytecode.push(strSize)
+        this.bytecode.push(OPCODES.MALLOC) // Returns heap address on stack
+        
+        // Store string length at the beginning (4 bytes)
+        // Duplicate address for storing length
+        const tempAddr = 250
+        this.bytecode.push(OPCODES.STORE)
+        this.bytecode.push(tempAddr)
+        this.bytecode.push(OPCODES.PUSH)
+        this.bytecode.push(strLength)
+        this.bytecode.push(OPCODES.LOAD)
+        this.bytecode.push(tempAddr)
+        this.bytecode.push(OPCODES.STORE32) // Store length as 32-bit
+        
+        // Store each character as 8-bit value
+        for (let i = 0; i < strLength; i++) {
+          const charCode = strValue.charCodeAt(i)
+          // Load address, add offset, store character
+          this.bytecode.push(OPCODES.LOAD)
+          this.bytecode.push(tempAddr)
+          this.bytecode.push(OPCODES.PUSH)
+          this.bytecode.push(4 + i) // Offset: 4 (length) + i
+          this.bytecode.push(OPCODES.ADD) // Calculate address
+          this.bytecode.push(OPCODES.PUSH)
+          this.bytecode.push(charCode)
+          this.bytecode.push(OPCODES.STORE8_STACK) // Store character
+        }
+        
+        // Store null terminator
+        this.bytecode.push(OPCODES.LOAD)
+        this.bytecode.push(tempAddr)
+        this.bytecode.push(OPCODES.PUSH)
+        this.bytecode.push(4 + strLength) // Offset for null terminator
+        this.bytecode.push(OPCODES.ADD)
+        this.bytecode.push(OPCODES.PUSH)
+        this.bytecode.push(0) // Null terminator
+        this.bytecode.push(OPCODES.STORE8_STACK)
+        
+        // Leave heap address on stack
+        this.bytecode.push(OPCODES.LOAD)
+        this.bytecode.push(tempAddr)
         break
 
       case 'Identifier':
@@ -465,6 +510,53 @@ export class CodeGenerator {
         break
 
       case 'AssignmentExpression':
+        // Episode 16: Handle array assignment: arr[index] = value
+        if (expr.arrayAccess) {
+          // Generate value
+          this.generateExpression(expr.value)
+          
+          // Generate array address and index
+          this.generateExpression(expr.arrayAccess.array)
+          this.generateExpression(expr.arrayAccess.index)
+          
+          // Calculate element address: arrayAddr + 4 + index * 4
+          // Stack: [value, arrayAddr, index]
+          const tempAddr = 246
+          this.bytecode.push(OPCODES.STORE)
+          this.bytecode.push(tempAddr) // Store index
+          this.bytecode.push(OPCODES.STORE)
+          this.bytecode.push(tempAddr + 1) // Store array address
+          this.bytecode.push(OPCODES.STORE)
+          this.bytecode.push(tempAddr + 2) // Store value
+          
+          // Calculate offset: 4 + index * 4
+          this.bytecode.push(OPCODES.LOAD)
+          this.bytecode.push(tempAddr) // Load index
+          this.bytecode.push(OPCODES.PUSH)
+          this.bytecode.push(4)
+          this.bytecode.push(OPCODES.MUL) // index * 4
+          this.bytecode.push(OPCODES.PUSH)
+          this.bytecode.push(4) // length field size
+          this.bytecode.push(OPCODES.ADD) // 4 + index * 4
+          
+          // Add to array address
+          this.bytecode.push(OPCODES.LOAD)
+          this.bytecode.push(tempAddr + 1) // Load array address
+          this.bytecode.push(OPCODES.ADD) // arrayAddr + offset
+          
+          // Load value and store
+          this.bytecode.push(OPCODES.LOAD)
+          this.bytecode.push(tempAddr + 2) // Load value
+          // Stack: [value, address]
+          this.bytecode.push(OPCODES.STORE32_STACK)
+          
+          // Load value back for chaining
+          this.bytecode.push(OPCODES.LOAD)
+          this.bytecode.push(tempAddr + 2)
+          break
+        }
+        
+        // Regular variable assignment
         this.generateExpression(expr.value)
         
         // Check if it's a function parameter or local variable
@@ -502,6 +594,14 @@ export class CodeGenerator {
 
       case 'FunctionCall':
         this.generateFunctionCall(expr)
+        break
+
+      case 'ArrayLiteral':
+        this.generateArrayLiteral(expr)
+        break
+
+      case 'ArrayAccess':
+        this.generateArrayAccess(expr)
         break
 
       default:
@@ -545,6 +645,89 @@ export class CodeGenerator {
       this.bytecode.push(0)
     }
     this.bytecode.push(OPCODES.RET)
+  }
+
+  private generateArrayLiteral(expr: { elements: Expression[] }): void {
+    // Episode 16: Allocate heap memory for array
+    // Array format: [length (4 bytes), elements...]
+    const elements = expr.elements
+    const arrayLength = elements.length
+    const arraySize = 4 + (arrayLength * 4) // 4 bytes for length + 4 bytes per element
+    
+    // Allocate heap memory
+    this.bytecode.push(OPCODES.PUSH)
+    this.bytecode.push(arraySize)
+    this.bytecode.push(OPCODES.MALLOC) // Returns heap address on stack
+    
+    // Store array length at the beginning
+    const tempAddr = 249
+    this.bytecode.push(OPCODES.STORE)
+    this.bytecode.push(tempAddr) // Save address
+    this.bytecode.push(OPCODES.PUSH)
+    this.bytecode.push(arrayLength)
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(tempAddr)
+    this.bytecode.push(OPCODES.STORE32) // Store length as 32-bit
+    
+    // Store each element as 32-bit value
+    for (let i = 0; i < elements.length; i++) {
+      // Generate element value
+      this.generateExpression(elements[i])
+      
+      // Calculate address: base + 4 (length) + i * 4
+      // Stack: [elementValue]
+      this.bytecode.push(OPCODES.LOAD)
+      this.bytecode.push(tempAddr) // Load base address
+      this.bytecode.push(OPCODES.PUSH)
+      this.bytecode.push(4 + (i * 4)) // Offset
+      this.bytecode.push(OPCODES.ADD) // base + offset
+      
+      // Stack: [elementValue, address]
+      // STORE32_STACK expects: [value, address] and pops both
+      this.bytecode.push(OPCODES.STORE32_STACK)
+    }
+    
+    // Leave heap address on stack
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(tempAddr)
+  }
+
+  private generateArrayAccess(expr: { array: Expression; index: Expression }): void {
+    // Episode 16: Calculate array element address and load value
+    // Array format: [length (4 bytes), elements...]
+    // Each element is 4 bytes (32-bit)
+    
+    // Generate array address (heap address)
+    this.generateExpression(expr.array)
+    
+    // Generate index
+    this.generateExpression(expr.index)
+    
+    // Calculate element address: arrayAddr + 4 (skip length) + index * 4
+    // Stack: [arrayAddr, index]
+    const tempAddr = 247
+    this.bytecode.push(OPCODES.STORE)
+    this.bytecode.push(tempAddr) // Store index
+    this.bytecode.push(OPCODES.STORE)
+    this.bytecode.push(tempAddr + 1) // Store array address
+    
+    // Calculate offset: 4 + index * 4
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(tempAddr) // Load index
+    this.bytecode.push(OPCODES.PUSH)
+    this.bytecode.push(4)
+    this.bytecode.push(OPCODES.MUL) // index * 4
+    this.bytecode.push(OPCODES.PUSH)
+    this.bytecode.push(4) // length field size
+    this.bytecode.push(OPCODES.ADD) // 4 + index * 4
+    
+    // Add to array address
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(tempAddr + 1) // Load array address
+    this.bytecode.push(OPCODES.ADD) // arrayAddr + offset
+    
+    // Load 32-bit value from calculated address
+    this.bytecode.push(OPCODES.LOAD32_STACK)
   }
 
   private generateTryStatement(stmt: { tryBlock: Statement[]; catchBlock: Statement[]; catchVariable?: string }): void {

@@ -45,6 +45,8 @@ export enum TokenType {
   RIGHT_PAREN = 'RIGHT_PAREN',
   LEFT_BRACE = 'LEFT_BRACE',
   RIGHT_BRACE = 'RIGHT_BRACE',
+  LEFT_BRACKET = 'LEFT_BRACKET',
+  RIGHT_BRACKET = 'RIGHT_BRACKET',
   
   // Special
   EOF = 'EOF',
@@ -343,6 +345,12 @@ export class Lexer {
       case '}':
         this.advance()
         return { type: TokenType.RIGHT_BRACE, value: '}', line: startLine, column: startColumn }
+      case '[':
+        this.advance()
+        return { type: TokenType.LEFT_BRACKET, value: '[', line: startLine, column: startColumn }
+      case ']':
+        this.advance()
+        return { type: TokenType.RIGHT_BRACKET, value: ']', line: startLine, column: startColumn }
     }
 
     // Unknown character

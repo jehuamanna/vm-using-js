@@ -1,4 +1,4 @@
-import { Episode15 } from './pages/Episode15'
+import { Episode16 } from './pages/Episode16'
 import { ThemeToggle } from './components/theme-toggle'
 
 function App() {
@@ -7,7 +7,7 @@ function App() {
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-      <Episode15 />
+      <Episode16 />
     </div>
   )
 }

@@ -89,6 +89,8 @@ export type Expression =
   | Identifier
   | AssignmentExpression
   | FunctionCall
+  | ArrayLiteral
+  | ArrayAccess
 
 export interface BinaryExpression {
   type: 'BinaryExpression'
@@ -122,6 +124,7 @@ export interface AssignmentExpression {
   type: 'AssignmentExpression'
   name: string
   value: Expression
+  arrayAccess?: ArrayAccess // For array assignment: arr[index] = value
 }
 
 export interface FunctionDefinition {
@@ -141,6 +144,17 @@ export interface FunctionCall {
   type: 'FunctionCall'
   name: string
   arguments: Expression[]
+}
+
+export interface ArrayLiteral {
+  type: 'ArrayLiteral'
+  elements: Expression[]
+}
+
+export interface ArrayAccess {
+  type: 'ArrayAccess'
+  array: Expression
+  index: Expression
 }
 
 export interface TryStatement {
@@ -581,15 +595,27 @@ export class Parser {
     const expr = this.parseEquality()
 
     if (this.current().type === TokenType.ASSIGN) {
-      if (expr.type !== 'Identifier') {
-        throw new Error('Left side of assignment must be an identifier')
-      }
-      this.advance()
-      const value = this.parseAssignment()
-      return {
-        type: 'AssignmentExpression',
-        name: expr.name,
-        value,
+      // Left side can be identifier or array access
+      if (expr.type === 'Identifier') {
+        this.advance()
+        const value = this.parseAssignment()
+        return {
+          type: 'AssignmentExpression',
+          name: expr.name,
+          value,
+        }
+      } else if (expr.type === 'ArrayAccess') {
+        // Array assignment: arr[index] = value
+        this.advance()
+        const value = this.parseAssignment()
+        return {
+          type: 'AssignmentExpression',
+          name: '', // Will be handled specially in codegen
+          value,
+          arrayAccess: expr, // Store the array access for codegen
+        } as any // Temporary type hack
+      } else {
+        throw new Error('Left side of assignment must be an identifier or array access')
       }
     }
 
@@ -716,15 +742,48 @@ export class Parser {
           return this.parseFunctionCall(name)
         }
         
+        // Check if it's array access (identifier followed by '[')
+        if (this.current().type === TokenType.LEFT_BRACKET) {
+          return this.parseArrayAccess({
+            type: 'Identifier',
+            name,
+          })
+        }
+        
         return {
           type: 'Identifier',
           name,
+        }
+
+      case TokenType.LEFT_BRACKET:
+        // Array literal: [1, 2, 3]
+        this.advance()
+        const elements: Expression[] = []
+        
+        if (this.current().type !== TokenType.RIGHT_BRACKET) {
+          elements.push(this.parseExpression())
+          while (this.current().type === TokenType.COMMA) {
+            this.advance() // consume comma
+            elements.push(this.parseExpression())
+          }
+        }
+        
+        this.expect(TokenType.RIGHT_BRACKET)
+        return {
+          type: 'ArrayLiteral',
+          elements,
         }
 
       case TokenType.LEFT_PAREN:
         this.advance()
         const expr = this.parseExpression()
         this.expect(TokenType.RIGHT_PAREN)
+        
+        // Check if it's array access after parentheses: (arr)[0]
+        if (this.current().type === TokenType.LEFT_BRACKET) {
+          return this.parseArrayAccess(expr)
+        }
+        
         return expr
 
       default:
@@ -748,11 +807,39 @@ export class Parser {
     
     this.expect(TokenType.RIGHT_PAREN)
     
+    // Check if it's array access after function call: func()[0]
+    if (this.current().type === TokenType.LEFT_BRACKET) {
+      return this.parseArrayAccess({
+        type: 'FunctionCall',
+        name,
+        arguments: args,
+      }) as any
+    }
+    
     return {
       type: 'FunctionCall',
       name,
       arguments: args,
     }
+  }
+
+  private parseArrayAccess(array: Expression): ArrayAccess {
+    // Parse array[index] - can be chained: arr[0][1]
+    let currentExpr: Expression = array
+    
+    while (this.current().type === TokenType.LEFT_BRACKET) {
+      this.advance() // consume [
+      const index = this.parseExpression()
+      this.expect(TokenType.RIGHT_BRACKET)
+      
+      currentExpr = {
+        type: 'ArrayAccess',
+        array: currentExpr,
+        index,
+      }
+    }
+    
+    return currentExpr as ArrayAccess
   }
 }
 

@@ -31,6 +31,14 @@ export const OPCODE_REFERENCE: OpcodeInfo[] = [
   { name: 'ENTER_TRY', value: 0x10, description: 'Enter try block (address of catch handler)', operands: 1, example: 'ENTER_TRY 20' },
   { name: 'LEAVE_TRY', value: 0x11, description: 'Leave try block', operands: 0, example: 'LEAVE_TRY' },
   { name: 'THROW', value: 0x12, description: 'Throw exception (error code on stack)', operands: 0, example: 'THROW' },
+  { name: 'MALLOC', value: 0x13, description: 'Allocate heap memory (size on stack, returns address)', operands: 0, example: 'MALLOC' },
+  { name: 'LOAD8', value: 0x14, description: 'Load 8-bit value from heap address', operands: 1, example: 'LOAD8 100' },
+  { name: 'LOAD32', value: 0x15, description: 'Load 32-bit value from heap address', operands: 1, example: 'LOAD32 100' },
+  { name: 'STORE8', value: 0x16, description: 'Store 8-bit value to heap address', operands: 1, example: 'STORE8 100' },
+  { name: 'STORE32', value: 0x17, description: 'Store 32-bit value to heap address', operands: 1, example: 'STORE32 100' },
+  { name: 'LOAD32_STACK', value: 0x18, description: 'Load 32-bit value from heap (address on stack)', operands: 0, example: 'LOAD32_STACK' },
+  { name: 'STORE32_STACK', value: 0x19, description: 'Store 32-bit value to heap (address on stack)', operands: 0, example: 'STORE32_STACK' },
+  { name: 'STORE8_STACK', value: 0x1A, description: 'Store 8-bit value to heap (address on stack)', operands: 0, example: 'STORE8_STACK' },
 ]
 
 // Reverse lookup: opcode name to value
