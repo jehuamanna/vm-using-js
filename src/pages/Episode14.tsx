@@ -48,7 +48,6 @@ print result;`)
   const [watches, setWatches] = useState<Watch[]>([])
   const [watchInput, setWatchInput] = useState<string>('')
   const [watchType, setWatchType] = useState<'variable' | 'memory'>('variable')
-  const [showDisassembly, setShowDisassembly] = useState<boolean>(false)
 
   useEffect(() => {
     const checkDarkMode = () => {
@@ -686,46 +685,6 @@ print result;`)
           </CardContent>
         </Card>
 
-        {/* Disassembly */}
-        {compilationResult && compilationResult.errors.length === 0 && (
-          <Card>
-            <CardHeader>
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-0 h-auto"
-                onClick={() => setShowDisassembly(!showDisassembly)}
-              >
-                <CardTitle className="text-lg">Disassembly</CardTitle>
-                {showDisassembly ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CardHeader>
-            {showDisassembly && (
-              <CardContent>
-                <div className="border border-border rounded-md overflow-hidden">
-                  <CodeMirror
-                    value={formatDisassembly(disassemble(compilationResult.bytecode).lines, {
-                      showAddresses: true,
-                      showRawBytes: false,
-                      showComments: true
-                    })}
-                    height="300px"
-                    theme={isDark ? oneDark : undefined}
-                    extensions={[javascript()]}
-                    editable={false}
-                    basicSetup={{
-                      lineNumbers: true,
-                      foldGutter: false,
-                    }}
-                  />
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        )}
       </div>
     </div>
   )
