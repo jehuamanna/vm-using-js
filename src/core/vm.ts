@@ -202,8 +202,13 @@ export class TinyVM {
       
       const opcode = bytecode[this.pc];
       
+      // Debug: log first 50 instructions to track execution flow
+      if (this.debugMode && instructionCount <= 50) {
+        console.log(`[VM] PC=${this.pc}, opcode=${opcode} (${this.getOpcodeName(opcode)}), stack=[${this.stack.slice(-5).join(',')}]`);
+      }
+      
       // Debug: log every 100 instructions to track progress
-      if (this.debugMode && instructionCount % 100 === 0) {
+      if (this.debugMode && instructionCount > 50 && instructionCount % 100 === 0) {
         console.log(`[VM] Executed ${instructionCount} instructions, PC=${this.pc}, opcode=${opcode} (${this.getOpcodeName(opcode)})`);
       }
       
