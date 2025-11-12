@@ -197,6 +197,32 @@
         "Debugging tools",
         "Reverse engineering basics"
       ]
+    },
+    {
+      "number": 11,
+      "title": "Complete Mini Language Compiler",
+      "commit": "feat(lesson): 11 - Complete Mini Language Compiler",
+      "files": [
+        "src/compiler/lexer.ts",
+        "src/compiler/parser.ts",
+        "src/compiler/codegen.ts",
+        "src/compiler/index.ts",
+        "src/pages/Episode11.tsx",
+        "src/App.tsx",
+        "scripts/lessons/11_complete_mini_language_compiler.md"
+      ],
+      "duration": "30-35 minutes",
+      "topics": [
+        "Compiler pipeline",
+        "Lexer (tokenizer)",
+        "Parser (AST construction)",
+        "Code generator",
+        "Recursive descent parsing",
+        "Variable management",
+        "Control flow generation",
+        "Label patching",
+        "High-level language support"
+      ]
     }
   ],
   "last_updated": "2024-01-01"
