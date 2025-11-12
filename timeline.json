@@ -33,6 +33,24 @@
         "Building conditionals and loops",
         "Turing completeness"
       ]
+    },
+    {
+      "number": 3,
+      "title": "Memory & Variables",
+      "commit": "feat(lesson): 03 - Memory & Variables",
+      "files": [
+        "src/core/vm.js",
+        "public/demos/episode03.html",
+        "scripts/lessons/03_memory_and_variables.md"
+      ],
+      "duration": "20-25 minutes",
+      "topics": [
+        "Memory vs Stack",
+        "Memory array implementation",
+        "LOAD and STORE instructions",
+        "Variable-like behavior",
+        "Accumulator pattern"
+      ]
     }
   ],
   "last_updated": "2024-01-01"

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VM.js Series - Episode 3: Memory & Variables</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 1100px;
+      width: 100%;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+
+    .demo-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .demo-section h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+    }
+
+    .code-block {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+
+    .code-block .comment {
+      color: #6a9955;
+    }
+
+    .code-block .label {
+      color: #4ec9b0;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      margin: 5px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #5568d3;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      min-height: 80px;
+      white-space: pre-wrap;
+    }
+
+    .memory-visual {
+      background: #f5f5f5;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+
+    .memory-cell {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+
+    .memory-cell.used {
+      background: #e3f2fd;
+      border-color: #667eea;
+      font-weight: bold;
+    }
+
+    .memory-cell-header {
+      font-size: 0.75em;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Episode 3: Memory & Variables</h1>
+    <p class="subtitle">Store and load values from memory</p>
+
+    <div class="demo-section">
+      <h2>Demo 1: Basic Variable Assignment</h2>
+      <p>Store a value in memory and load it back</p>
+      <div class="code-block">
+<span class="comment">// Store 42 at memory address 0</span>
+PUSH 42
+STORE 0
+
+<span class="comment">// Load from address 0 and print</span>
+LOAD 0
+PRINT
+HALT
+      </div>
+      <button onclick="runDemo1()">Run Demo 1</button>
+      <div id="output1" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 2: Variable Reuse</h2>
+      <p>Store multiple values, modify one, and use them in calculations</p>
+      <div class="code-block">
+<span class="comment">// x = 10, y = 20</span>
+PUSH 10
+STORE 0  <span class="comment">// x at address 0</span>
+PUSH 20
+STORE 1  <span class="comment">// y at address 1</span>
+
+<span class="comment">// Calculate x + y</span>
+LOAD 0
+LOAD 1
+ADD
+PRINT    <span class="comment">// Should print 30</span>
+
+<span class="comment">// Modify x = 15</span>
+PUSH 15
+STORE 0
+
+<span class="comment">// Calculate x + y again</span>
+LOAD 0
+LOAD 1
+ADD
+PRINT    <span class="comment">// Should print 35</span>
+HALT
+      </div>
+      <button onclick="runDemo2()">Run Demo 2</button>
+      <div id="output2" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 3: Accumulator Pattern</h2>
+      <p>Use memory to accumulate a sum</p>
+      <div class="code-block">
+<span class="comment">// Initialize sum = 0</span>
+PUSH 0
+STORE 0
+
+<span class="comment">// Add 5 to sum</span>
+LOAD 0
+PUSH 5
+ADD
+STORE 0
+
+<span class="comment">// Add 10 to sum</span>
+LOAD 0
+PUSH 10
+ADD
+STORE 0
+
+<span class="comment">// Add 3 to sum</span>
+LOAD 0
+PUSH 3
+ADD
+STORE 0
+
+<span class="comment">// Print final sum</span>
+LOAD 0
+PRINT    <span class="comment">// Should print 18</span>
+HALT
+      </div>
+      <button onclick="runDemo3()">Run Demo 3</button>
+      <div id="output3" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <div class="two-column">
+        <div>
+          <h2>Stack Visualization</h2>
+          <div id="stack-visual" class="memory-visual">
+            <div style="color: #999; text-align: center; padding: 20px; font-style: italic;">Stack is empty</div>
+          </div>
+        </div>
+        <div>
+          <h2>Memory Visualization</h2>
+          <div id="memory-visual" class="memory-visual">
+            <div class="memory-grid" id="memory-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { TinyVM, OPCODES } from '../../src/core/vm.js';
+
+    window.vm = new TinyVM(256);
+    window.OPCODES = OPCODES;
+
+    function updateStackVisual() {
+      const visual = document.getElementById('stack-visual');
+      if (window.vm.stack.length === 0) {
+        visual.innerHTML = '<div style="color: #999; text-align: center; padding: 20px; font-style: italic;">Stack is empty</div>';
+      } else {
+        visual.innerHTML = window.vm.stack
+          .slice()
+          .reverse()
+          .map((val, idx) => {
+            const position = window.vm.stack.length - idx - 1;
+            return `<div style="background: #667eea; color: white; padding: 8px 12px; margin: 5px 0; border-radius: 4px; text-align: center; font-family: monospace;">
+              [${position}]: ${val}
+            </div>`;
+          })
+          .join('');
+      }
+    }
+
+    function updateMemoryVisual() {
+      const grid = document.getElementById('memory-grid');
+      const memory = window.vm.memory;
+      const usedAddresses = new Set();
+      
+      // Find used addresses (non-zero or recently accessed)
+      for (let i = 0; i < Math.min(32, memory.length); i++) {
+        if (memory[i] !== 0) {
+          usedAddresses.add(i);
+        }
+      }
+
+      grid.innerHTML = '';
+      for (let i = 0; i < Math.min(32, memory.length); i++) {
+        const cell = document.createElement('div');
+        cell.className = 'memory-cell' + (usedAddresses.has(i) ? ' used' : '');
+        cell.innerHTML = `
+          <div class="memory-cell-header">[${i}]</div>
+          <div>${memory[i]}</div>
+        `;
+        grid.appendChild(cell);
+      }
+    }
+
+    function updateVisuals() {
+      updateStackVisual();
+      updateMemoryVisual();
+    }
+
+    window.runDemo1 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output1');
+      output.textContent = 'Running...\n';
+
+      // Store 42 at address 0, then load and print
+      const bytecode = [
+        OPCODES.PUSH, 42,
+        OPCODES.STORE, 0,
+        OPCODES.LOAD, 0,
+        OPCODES.PRINT,
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n');
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+      updateVisuals();
+    };
+
+    window.runDemo2 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output2');
+      output.textContent = 'Running...\n';
+
+      // x = 10, y = 20, calculate x + y, then modify x = 15, calculate again
+      const bytecode = [
+        OPCODES.PUSH, 10,
+        OPCODES.STORE, 0,  // x
+        OPCODES.PUSH, 20,
+        OPCODES.STORE, 1,  // y
+        OPCODES.LOAD, 0,
+        OPCODES.LOAD, 1,
+        OPCODES.ADD,
+        OPCODES.PRINT,     // 30
+        OPCODES.PUSH, 15,
+        OPCODES.STORE, 0,  // x = 15
+        OPCODES.LOAD, 0,
+        OPCODES.LOAD, 1,
+        OPCODES.ADD,
+        OPCODES.PRINT,     // 35
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n');
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+      updateVisuals();
+    };
+
+    window.runDemo3 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output3');
+      output.textContent = 'Running...\n';
+
+      // Accumulator: sum = 0, then add 5, 10, 3
+      const bytecode = [
+        OPCODES.PUSH, 0,
+        OPCODES.STORE, 0,  // sum = 0
+        OPCODES.LOAD, 0,
+        OPCODES.PUSH, 5,
+        OPCODES.ADD,
+        OPCODES.STORE, 0,  // sum = 5
+        OPCODES.LOAD, 0,
+        OPCODES.PUSH, 10,
+        OPCODES.ADD,
+        OPCODES.STORE, 0,  // sum = 15
+        OPCODES.LOAD, 0,
+        OPCODES.PUSH, 3,
+        OPCODES.ADD,
+        OPCODES.STORE, 0,  // sum = 18
+        OPCODES.LOAD, 0,
+        OPCODES.PRINT,
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n');
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+      updateVisuals();
+    };
+
+    // Initial visualization
+    updateVisuals();
+  </script>
+</body>
+</html>
+

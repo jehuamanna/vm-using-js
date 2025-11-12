@@ -1,5 +1,5 @@
 /**
- * Episode 1-2: Tiny VM with Control Flow
+ * Episode 1-3: Tiny VM with Control Flow and Memory
  * A minimal stack-based virtual machine implementation
  */
 
@@ -13,12 +13,15 @@ const OPCODES = {
   JMP: 0x06,        // Episode 2: Unconditional jump
   JMP_IF_ZERO: 0x07, // Episode 2: Jump if top of stack is zero
   JMP_IF_NEG: 0x08,  // Episode 2: Jump if top of stack is negative
+  LOAD: 0x09,        // Episode 3: Load value from memory address
+  STORE: 0x0A,       // Episode 3: Store value to memory address
   HALT: 0x00
 };
 
 class TinyVM {
-  constructor() {
+  constructor(memorySize = 256) {
     this.stack = [];
+    this.memory = new Array(memorySize).fill(0); // Episode 3: Simulated memory
     this.pc = 0; // Program counter
     this.running = false;
     this.output = [];
@@ -128,6 +131,29 @@ class TinyVM {
           }
           break;
 
+        case OPCODES.LOAD:
+          // Load value from memory address onto stack
+          this.pc++;
+          const loadAddr = bytecode[this.pc];
+          if (loadAddr < 0 || loadAddr >= this.memory.length) {
+            throw new Error(`Invalid memory address: ${loadAddr}`);
+          }
+          this.push(this.memory[loadAddr]);
+          this.pc++;
+          break;
+
+        case OPCODES.STORE:
+          // Store value from stack to memory address
+          this.pc++;
+          const storeAddr = bytecode[this.pc];
+          if (storeAddr < 0 || storeAddr >= this.memory.length) {
+            throw new Error(`Invalid memory address: ${storeAddr}`);
+          }
+          const valueToStore = this.pop();
+          this.memory[storeAddr] = valueToStore;
+          this.pc++;
+          break;
+
         case OPCODES.HALT:
           this.running = false;
           this.pc++;
@@ -146,6 +172,7 @@ class TinyVM {
    */
   reset() {
     this.stack = [];
+    this.memory.fill(0); // Clear memory
     this.pc = 0;
     this.running = false;
     this.output = [];
