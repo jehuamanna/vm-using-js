@@ -89,7 +89,8 @@ export function Episode16() {
       console.log('Output length:', result.length)
       
       if (result.length === 0) {
-        setOutput(['(No output produced)'])
+        setOutput([])
+        setError('No output produced. Check console for debug information.')
       } else {
         setOutput(result)
       }
