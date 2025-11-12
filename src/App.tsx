@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TinyVM, OPCODES } from './core/vm'
 import { Button } from './components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
+import { ThemeToggle } from './components/theme-toggle'
 
 function App() {
   const [vm] = useState(() => new TinyVM())
@@ -62,15 +63,18 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 dark:from-purple-900 dark:via-purple-800 dark:to-purple-900 p-4 md:p-8">
       <div className="container mx-auto max-w-6xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            🎬 Episode 1: Introduction & Tiny VM
-          </h1>
-          <p className="text-purple-100 text-lg">
-            A minimal stack-based virtual machine in JavaScript
-          </p>
+        <div className="flex justify-between items-start mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold text-white dark:text-purple-100 mb-2">
+              🎬 Episode 1: Introduction & Tiny VM
+            </h1>
+            <p className="text-purple-100 dark:text-purple-200 text-lg">
+              A minimal stack-based virtual machine in JavaScript
+            </p>
+          </div>
+          <ThemeToggle />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -80,7 +84,7 @@ function App() {
               <CardDescription>Calculate 5 + 3</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-900 text-green-400 p-4 rounded-md font-mono text-sm mb-4 border-l-4 border-primary">
+              <div className="bg-slate-900 dark:bg-slate-950 text-green-400 dark:text-green-300 p-4 rounded-md font-mono text-sm mb-4 border-l-4 border-primary">
                 PUSH 5<br />
                 PUSH 3<br />
                 ADD<br />
@@ -90,7 +94,7 @@ function App() {
               <Button onClick={runDemo1} className="w-full mb-4">
                 Run Demo 1
               </Button>
-              <div className="bg-slate-900 text-slate-100 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap">
+              <div className="bg-slate-900 dark:bg-slate-950 text-slate-100 dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap">
                 {output1}
               </div>
             </CardContent>
@@ -102,7 +106,7 @@ function App() {
               <CardDescription>Calculate (10 - 3) * 2</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-slate-900 text-green-400 p-4 rounded-md font-mono text-sm mb-4 border-l-4 border-primary">
+              <div className="bg-slate-900 dark:bg-slate-950 text-green-400 dark:text-green-300 p-4 rounded-md font-mono text-sm mb-4 border-l-4 border-primary">
                 PUSH 10<br />
                 PUSH 3<br />
                 SUB<br />
@@ -114,7 +118,7 @@ function App() {
               <Button onClick={runDemo2} className="w-full mb-4">
                 Run Demo 2
               </Button>
-              <div className="bg-slate-900 text-slate-100 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap">
+              <div className="bg-slate-900 dark:bg-slate-950 text-slate-100 dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap">
                 {output2}
               </div>
             </CardContent>
