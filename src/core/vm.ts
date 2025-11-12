@@ -1,5 +1,5 @@
 /**
- * Episode 1-4: Tiny VM with Control Flow, Memory, and I/O
+ * Episode 1-5: Tiny VM with Control Flow, Memory, I/O, and Functions
  * A minimal stack-based virtual machine implementation
  */
 
@@ -16,10 +16,17 @@ export const OPCODES = {
   LOAD: 0x09,        // Episode 3: Load value from memory address
   STORE: 0x0A,       // Episode 3: Store value to memory address
   READ: 0x0B,        // Episode 4: Read value from input
+  CALL: 0x0C,        // Episode 5: Call function at address
+  RET: 0x0D,         // Episode 5: Return from function
   HALT: 0x00
 } as const;
 
 export type Opcode = typeof OPCODES[keyof typeof OPCODES];
+
+interface CallFrame {
+  returnAddress: number;
+  stackPointer: number; // Stack size when function was called
+}
 
 export class TinyVM {
   stack: number[] = [];
@@ -28,6 +35,7 @@ export class TinyVM {
   running: boolean = false;
   output: number[] = [];
   inputQueue: number[] = []; // Episode 4: Queue for input values
+  callStack: CallFrame[] = []; // Episode 5: Call stack for function calls
 
   constructor(memorySize: number = 256) {
     this.memory = new Array(memorySize).fill(0);
@@ -184,6 +192,34 @@ export class TinyVM {
           this.pc++;
           break;
 
+        case OPCODES.CALL:
+          // Call function at address: save return address and jump
+          this.pc++;
+          const callAddr = bytecode[this.pc];
+          if (callAddr < 0 || callAddr >= bytecode.length) {
+            throw new Error(`Invalid call address: ${callAddr}`);
+          }
+          // Save return address (next instruction after CALL and its operand)
+          const returnAddr = this.pc + 1;
+          // Save current stack pointer (for frame management)
+          this.callStack.push({
+            returnAddress: returnAddr,
+            stackPointer: this.stack.length
+          });
+          // Jump to function
+          this.pc = callAddr;
+          break;
+
+        case OPCODES.RET:
+          // Return from function: restore return address
+          if (this.callStack.length === 0) {
+            throw new Error('RET called but call stack is empty');
+          }
+          const frame = this.callStack.pop()!;
+          // Restore program counter to return address
+          this.pc = frame.returnAddress;
+          break;
+
         case OPCODES.HALT:
           this.running = false;
           this.pc++;
@@ -207,6 +243,7 @@ export class TinyVM {
     this.running = false;
     this.output = [];
     this.inputQueue = [];
+    this.callStack = [];
   }
 }
 

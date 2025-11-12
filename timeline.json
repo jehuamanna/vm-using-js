@@ -71,6 +71,26 @@
         "Interactive programming",
         "Calculator demo"
       ]
+    },
+    {
+      "number": 5,
+      "title": "Functions & Call Stack",
+      "commit": "feat(lesson): 05 - Functions & Call Stack",
+      "files": [
+        "src/core/vm.ts",
+        "src/pages/Episode05.tsx",
+        "src/App.tsx",
+        "scripts/lessons/05_functions_and_call_stack.md"
+      ],
+      "duration": "22-25 minutes",
+      "topics": [
+        "Function calls",
+        "CALL and RET instructions",
+        "Call stack implementation",
+        "Stack frames",
+        "Recursive functions",
+        "Fibonacci example"
+      ]
     }
   ],
   "last_updated": "2024-01-01"
