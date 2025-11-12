@@ -137,7 +137,9 @@ export class CodeGenerator {
 
     // Generate main code
     const mainCodeStart = this.bytecode.length
+    console.log(`[CODEGEN] Patching main code jump: label=${mainCodeStartLabel}, address=${mainCodeStart}, bytecode length=${this.bytecode.length}`)
     this.patchJump(mainCodeStartLabel, mainCodeStart)
+    console.log(`[CODEGEN] After patching, bytecode[1]=${this.bytecode[1]}`)
 
     for (const stmt of ast.statements) {
       if (stmt.type !== 'FunctionDefinition' && stmt.type !== 'ExportStatement' && stmt.type !== 'ImportStatement') {
