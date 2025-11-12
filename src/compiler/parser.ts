@@ -17,6 +17,8 @@ export type ASTNode =
   | ReturnStatement
   | TryStatement
   | ThrowStatement
+  | ImportStatement
+  | ExportStatement
   | BinaryExpression
   | UnaryExpression
   | NumberLiteral
@@ -41,6 +43,8 @@ export type Statement =
   | ReturnStatement
   | TryStatement
   | ThrowStatement
+  | ImportStatement
+  | ExportStatement
 
 export interface LetStatement {
   type: 'LetStatement'
@@ -147,6 +151,17 @@ export interface TryStatement {
 export interface ThrowStatement {
   type: 'ThrowStatement'
   value: Expression
+}
+
+export interface ImportStatement {
+  type: 'ImportStatement'
+  names: string[] // List of imported names
+  module: string // Module name/path
+}
+
+export interface ExportStatement {
+  type: 'ExportStatement'
+  name: string // Exported name (function or variable)
 }
 
 export class Parser {
@@ -260,6 +275,10 @@ export class Parser {
         return this.parseTryStatement()
       case TokenType.THROW:
         return this.parseThrowStatement()
+      case TokenType.IMPORT:
+        return this.parseImportStatement()
+      case TokenType.EXPORT:
+        return this.parseExportStatement()
       case TokenType.SEMICOLON:
         this.advance()
         return null
@@ -433,6 +452,65 @@ export class Parser {
     return {
       type: 'ThrowStatement',
       value,
+    }
+  }
+
+  private parseImportStatement(): ImportStatement {
+    this.expect(TokenType.IMPORT)
+    
+    // Parse import names: import { name1, name2 } or import name
+    const names: string[] = []
+    
+    if (this.current().type === TokenType.LEFT_BRACE) {
+      // Named imports: import { name1, name2 } from "module"
+      this.advance() // consume {
+      
+      if (this.current().type !== TokenType.RIGHT_BRACE) {
+        names.push(this.expect(TokenType.IDENTIFIER).value as string)
+        while (this.current().type === TokenType.COMMA) {
+          this.advance() // consume comma
+          names.push(this.expect(TokenType.IDENTIFIER).value as string)
+        }
+      }
+      
+      this.expect(TokenType.RIGHT_BRACE)
+    } else {
+      // Single import: import name from "module"
+      names.push(this.expect(TokenType.IDENTIFIER).value as string)
+    }
+    
+    this.expect(TokenType.FROM)
+    
+    // Parse module name (string or identifier)
+    let module: string
+    if (this.current().type === TokenType.STRING) {
+      module = this.expect(TokenType.STRING).value as string
+    } else {
+      module = this.expect(TokenType.IDENTIFIER).value as string
+    }
+    
+    this.expect(TokenType.SEMICOLON)
+    
+    return {
+      type: 'ImportStatement',
+      names,
+      module,
+    }
+  }
+
+  private parseExportStatement(): ExportStatement {
+    this.expect(TokenType.EXPORT)
+    
+    // For now, we support: export fn name(...) or export let name = ...
+    // We'll handle the actual export in codegen
+    const name = this.expect(TokenType.IDENTIFIER).value as string
+    
+    // The actual definition follows (fn, let, etc.)
+    // We'll mark it as exported in codegen
+    
+    return {
+      type: 'ExportStatement',
+      name,
     }
   }
 

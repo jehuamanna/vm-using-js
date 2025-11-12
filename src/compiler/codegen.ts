@@ -10,14 +10,27 @@ export class CodeGenerator {
   private bytecode: number[] = []
   private variableMap: Map<string, number> = new Map()
   private functionMap: Map<string, number> = new Map() // Function name -> address
+  private exportMap: Map<string, number> = new Map() // Exported symbol name -> address
   
   // Get variable map for debugging
   getVariableMap(): Map<string, number> {
     return new Map(this.variableMap)
   }
+  
+  // Get function map
+  getFunctionMap(): Map<string, number> {
+    return new Map(this.functionMap)
+  }
+  
+  // Get export map
+  getExportMap(): Map<string, number> {
+    return new Map(this.exportMap)
+  }
+  
   private nextVariableAddress: number = 0
   private labelCounter: number = 0
-  private functionBodies: Array<{ name: string; body: Statement[]; parameters: string[] }> = []
+  private functionBodies: Array<{ name: string; body: Statement[]; parameters: string[]; exported?: boolean }> = []
+  private exportedVariables: Set<string> = new Set()
   private currentFunctionParams: Map<string, number> = new Map() // Parameter name -> local offset
   private currentFunctionLocals: Map<string, number> = new Map() // Local variable name -> local offset
   private nextLocalOffset: number = 0
@@ -27,17 +40,34 @@ export class CodeGenerator {
     this.bytecode = []
     this.variableMap.clear()
     this.functionMap.clear()
+    this.exportMap.clear()
     this.functionBodies = []
+    this.exportedVariables.clear()
     this.nextVariableAddress = 0
     this.labelCounter = 0
 
-    // First pass: collect function definitions
-    for (const stmt of ast.statements) {
-      if (stmt.type === 'FunctionDefinition') {
+    // First pass: collect exports and function definitions
+    let nextStmt: Statement | null = null
+    for (let i = 0; i < ast.statements.length; i++) {
+      const stmt = ast.statements[i]
+      nextStmt = i + 1 < ast.statements.length ? ast.statements[i + 1] : null
+      
+      if (stmt.type === 'ExportStatement') {
+        // Mark the next statement as exported
+        if (nextStmt && nextStmt.type === 'FunctionDefinition') {
+          // Will mark in functionBodies
+        } else if (nextStmt && nextStmt.type === 'LetStatement') {
+          this.exportedVariables.add(nextStmt.name)
+        }
+      } else if (stmt.type === 'FunctionDefinition') {
+        // Check if previous statement was export
+        const prevStmt = i > 0 ? ast.statements[i - 1] : null
+        const exported = prevStmt?.type === 'ExportStatement' && prevStmt.name === stmt.name
         this.functionBodies.push({
           name: stmt.name,
           body: stmt.body,
           parameters: stmt.parameters,
+          exported,
         })
       }
     }
@@ -52,6 +82,11 @@ export class CodeGenerator {
     for (const func of this.functionBodies) {
       const funcAddress = this.bytecode.length
       this.functionMap.set(func.name, funcAddress)
+      
+      // If exported, add to export map
+      if (func.exported) {
+        this.exportMap.set(func.name, funcAddress)
+      }
       
       // Set up function context
       this.isInFunction = true
@@ -97,8 +132,16 @@ export class CodeGenerator {
     this.patchJump(mainCodeStartLabel, mainCodeStart)
 
     for (const stmt of ast.statements) {
-      if (stmt.type !== 'FunctionDefinition') {
+      if (stmt.type !== 'FunctionDefinition' && stmt.type !== 'ExportStatement' && stmt.type !== 'ImportStatement') {
         this.generateStatement(stmt)
+        
+        // If this is an exported variable, add to export map
+        if (stmt.type === 'LetStatement' && this.exportedVariables.has(stmt.name)) {
+          const varAddress = this.variableMap.get(stmt.name)
+          if (varAddress !== undefined) {
+            this.exportMap.set(stmt.name, varAddress)
+          }
+        }
       }
     }
 
@@ -142,6 +185,12 @@ export class CodeGenerator {
         break
       case 'ThrowStatement':
         this.generateThrowStatement(stmt)
+        break
+      case 'ImportStatement':
+        // Imports are handled by the linker, skip here
+        break
+      case 'ExportStatement':
+        // Exports are handled in generate(), skip here
         break
     }
   }

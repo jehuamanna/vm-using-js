@@ -21,6 +21,9 @@ export enum TokenType {
   TRY = 'TRY',
   CATCH = 'CATCH',
   THROW = 'THROW',
+  IMPORT = 'IMPORT',
+  EXPORT = 'EXPORT',
+  FROM = 'FROM',
   
   // Operators
   PLUS = 'PLUS',
@@ -67,6 +70,9 @@ const KEYWORDS: Record<string, TokenType> = {
   'try': TokenType.TRY,
   'catch': TokenType.CATCH,
   'throw': TokenType.THROW,
+  'import': TokenType.IMPORT,
+  'export': TokenType.EXPORT,
+  'from': TokenType.FROM,
 }
 
 export class Lexer {

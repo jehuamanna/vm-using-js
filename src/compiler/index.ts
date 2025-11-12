@@ -12,7 +12,9 @@ export interface CompileResult {
   errors: string[]
   tokens?: any[]
   ast?: any
-  variableMap?: Map<string, number> // Variable name -> address mapping
+  variableMap?: Map<string, number>
+  functionMap?: Map<string, number>
+  exportMap?: Map<string, number>
 }
 
 export function compile(source: string): CompileResult {
@@ -37,6 +39,8 @@ export function compile(source: string): CompileResult {
       tokens,
       ast,
       variableMap: generator.getVariableMap(),
+      functionMap: generator.getFunctionMap(),
+      exportMap: generator.getExportMap(),
     }
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error))
