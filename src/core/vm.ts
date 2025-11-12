@@ -611,7 +611,13 @@ export class TinyVM {
           // Convert unsigned to signed (two's complement)
           const signedValue32Stack = value32Stack | 0;
           if (this.debugMode) {
-            console.log(`[LOAD32_STACK] Loaded value ${signedValue32Stack} from heap address ${load32StackAddr}`);
+            const bytes = [
+              this.heap[load32StackAddr],
+              this.heap[load32StackAddr + 1],
+              this.heap[load32StackAddr + 2],
+              this.heap[load32StackAddr + 3]
+            ];
+            console.log(`[LOAD32_STACK] Loaded value ${signedValue32Stack} from heap address ${load32StackAddr}, bytes: [${bytes.join(', ')}]`);
           }
           this.push(signedValue32Stack);
           this.pc++;
@@ -630,7 +636,13 @@ export class TinyVM {
           this.heap[store32StackAddr + 2] = (store32StackValue >> 16) & 0xFF;
           this.heap[store32StackAddr + 3] = (store32StackValue >> 24) & 0xFF;
           if (this.debugMode) {
-            console.log(`[STORE32_STACK] Stored value ${store32StackValue} at heap address ${store32StackAddr}`);
+            const bytes = [
+              this.heap[store32StackAddr],
+              this.heap[store32StackAddr + 1],
+              this.heap[store32StackAddr + 2],
+              this.heap[store32StackAddr + 3]
+            ];
+            console.log(`[STORE32_STACK] Stored value ${store32StackValue} at heap address ${store32StackAddr}, bytes: [${bytes.join(', ')}]`);
           }
           this.pc++;
           break;

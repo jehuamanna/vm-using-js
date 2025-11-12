@@ -784,10 +784,10 @@ export class CodeGenerator {
     this.generateExpression(expr.index)
     
     // Calculate element address: arrayAddr + 4 (skip length) + index * 4
-    // Stack: [arrayAddr, index]
-    const tempAddr = 247
+    // Stack: [arrayAddr, index] with index on top
+    const tempAddr = 253 // Use different temp address to avoid conflicts
     this.bytecode.push(OPCODES.STORE)
-    this.bytecode.push(tempAddr) // Store index
+    this.bytecode.push(tempAddr) // Store index (top of stack)
     this.bytecode.push(OPCODES.STORE)
     this.bytecode.push(tempAddr + 1) // Store array address
     
