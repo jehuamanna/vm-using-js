@@ -50,6 +50,20 @@ export interface ExecutionStep {
   error?: string;
 }
 
+export interface Breakpoint {
+  address: number;
+  enabled: boolean;
+}
+
+export interface Watch {
+  name: string;
+  type: 'variable' | 'memory' | 'expression';
+  address?: number;
+  expression?: string;
+}
+
+export type StepMode = 'run' | 'step-into' | 'step-over' | 'step-out' | 'paused';
+
 export class TinyVM {
   stack: number[] = [];
   memory: number[];
@@ -70,6 +84,16 @@ export class TinyVM {
   exceptionThrown: boolean = false;
   exceptionValue: number = 0;
   stackTrace: Array<{ address: number; functionName?: string }> = [];
+  
+  // Episode 14: Debugger Pro
+  breakpoints: Map<number, Breakpoint> = new Map();
+  watches: Watch[] = [];
+  stepMode: StepMode = 'run';
+  paused: boolean = false;
+  stepOverDepth: number = -1; // Call stack depth to step over to
+  stepOutDepth: number = -1; // Call stack depth to step out to
+  pauseOnException: boolean = true;
+  currentBytecode: number[] = [];
 
   constructor(memorySize: number = 256) {
     this.memory = new Array(memorySize).fill(0);
@@ -135,15 +159,70 @@ export class TinyVM {
   /**
    * Execute a bytecode program
    */
-  execute(bytecode: number[], debugMode: boolean = false): number[] {
-    this.pc = 0;
-    this.running = true;
-    this.output = [];
+  execute(bytecode: number[], debugMode: boolean = false, resume: boolean = false): number[] {
+    if (!resume) {
+      // Only reset if not resuming
+      this.pc = 0;
+      this.running = true;
+      this.output = [];
+      this.executionTrace = [];
+      this.paused = false;
+      this.stepMode = debugMode ? 'step-into' : 'run';
+    }
     this.debugMode = debugMode;
-    this.executionTrace = [];
+    this.currentBytecode = bytecode;
 
     while (this.running && this.pc < bytecode.length) {
       const opcode = bytecode[this.pc];
+      
+      // Episode 14: Check for breakpoints
+      if (this.debugMode && this.breakpoints.has(this.pc)) {
+        const bp = this.breakpoints.get(this.pc)!;
+        if (bp.enabled) {
+          this.paused = true;
+          this.stepMode = 'paused';
+          const step = this.createExecutionStep(opcode);
+          this.executionTrace.push(step);
+          if (this.stepCallback) {
+            this.stepCallback(step);
+          }
+          // Wait for user to continue
+          return this.output;
+        }
+      }
+      
+      // Episode 14: Handle step modes
+      if (this.debugMode && this.stepMode !== 'run') {
+        if (this.stepMode === 'step-into') {
+          // Always pause on step-into
+          this.paused = true;
+          this.stepMode = 'paused';
+        } else if (this.stepMode === 'step-over') {
+          // Pause if we're back at the same call stack depth
+          if (this.callStack.length <= this.stepOverDepth) {
+            this.paused = true;
+            this.stepMode = 'paused';
+            this.stepOverDepth = -1;
+          }
+        } else if (this.stepMode === 'step-out') {
+          // Pause if we've returned to a shallower call stack depth
+          if (this.callStack.length < this.stepOutDepth) {
+            this.paused = true;
+            this.stepMode = 'paused';
+            this.stepOutDepth = -1;
+          }
+        }
+        
+        if (this.paused) {
+          const step = this.createExecutionStep(opcode);
+          this.executionTrace.push(step);
+          if (this.stepCallback) {
+            this.stepCallback(step);
+          }
+          // Wait for user to continue
+          return this.output;
+        }
+      }
       
       // Episode 6: Debug mode - record execution step
       if (this.debugMode) {
@@ -282,6 +361,12 @@ export class TinyVM {
             stackPointer: this.stack.length,
             frameBase: frameBase
           });
+          
+          // Episode 14: Handle step-over - if stepping over, don't pause in function
+          if (this.debugMode && this.stepMode === 'step-over' && this.stepOverDepth === -1) {
+            this.stepOverDepth = this.callStack.length - 1;
+          }
+          
           // Jump to function
           this.pc = callAddr;
           break;
@@ -384,6 +469,20 @@ export class TinyVM {
             }
             // Unwind try blocks
             this.tryStack = [];
+            
+            // Episode 14: Pause on exception if enabled
+            if (this.debugMode && this.pauseOnException) {
+              this.paused = true;
+              this.stepMode = 'paused';
+              const step = this.createExecutionStep(opcode);
+              step.error = `Uncaught exception: ${this.exceptionValue}`;
+              this.executionTrace.push(step);
+              if (this.stepCallback) {
+                this.stepCallback(step);
+              }
+              return this.output;
+            }
+            
             throw new Error(`Uncaught exception: ${this.exceptionValue}`);
           }
           
@@ -451,6 +550,15 @@ export class TinyVM {
     this.exceptionThrown = false;
     this.exceptionValue = 0;
     this.stackTrace = [];
+    // Episode 14: Reset debugger state
+    this.breakpoints.clear();
+    this.watches = [];
+    this.stepMode = 'run';
+    this.paused = false;
+    this.stepOverDepth = -1;
+    this.stepOutDepth = -1;
+    this.pauseOnException = true;
+    this.currentBytecode = [];
   }
   
   /**
@@ -482,5 +590,127 @@ export class TinyVM {
   getExecutionTrace(): ExecutionStep[] {
     return [...this.executionTrace];
   }
+
+  /**
+   * Episode 14: Debugger Pro - Breakpoint management
+   */
+  setBreakpoint(address: number, enabled: boolean = true): void {
+    this.breakpoints.set(address, { address, enabled });
+  }
+
+  removeBreakpoint(address: number): void {
+    this.breakpoints.delete(address);
+  }
+
+  toggleBreakpoint(address: number): void {
+    const bp = this.breakpoints.get(address);
+    if (bp) {
+      bp.enabled = !bp.enabled;
+    } else {
+      this.setBreakpoint(address, true);
+    }
+  }
+
+  getBreakpoints(): Breakpoint[] {
+    return Array.from(this.breakpoints.values());
+  }
+
+  /**
+   * Episode 14: Debugger Pro - Watch management
+   */
+  addWatch(watch: Watch): void {
+    this.watches.push(watch);
+  }
+
+  removeWatch(index: number): void {
+    this.watches.splice(index, 1);
+  }
+
+  getWatches(): Watch[] {
+    return [...this.watches];
+  }
+
+  /**
+   * Episode 14: Debugger Pro - Evaluate watch values
+   */
+  evaluateWatches(): Array<{ watch: Watch; value: number | string }> {
+    const results: Array<{ watch: Watch; value: number | string }> = [];
+    
+    for (const watch of this.watches) {
+      try {
+        if (watch.type === 'variable' && watch.address !== undefined) {
+          // Variable watch - check if it's a local or global
+          if (this.callStack.length > 0) {
+            // Check if it's a local variable
+            const currentFrame = this.callStack[this.callStack.length - 1];
+            const localAddr = currentFrame.frameBase + watch.address;
+            if (localAddr >= 0 && localAddr < this.memory.length) {
+              results.push({ watch, value: this.memory[localAddr] });
+              continue;
+            }
+          }
+          // Global variable
+          if (watch.address >= 0 && watch.address < this.memory.length) {
+            results.push({ watch, value: this.memory[watch.address] });
+          } else {
+            results.push({ watch, value: 'Invalid address' });
+          }
+        } else if (watch.type === 'memory' && watch.address !== undefined) {
+          // Memory watch
+          if (watch.address >= 0 && watch.address < this.memory.length) {
+            results.push({ watch, value: this.memory[watch.address] });
+          } else {
+            results.push({ watch, value: 'Invalid address' });
+          }
+        } else {
+          results.push({ watch, value: 'Not implemented' });
+        }
+      } catch (error) {
+        results.push({ watch, value: `Error: ${error instanceof Error ? error.message : String(error)}` });
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Episode 14: Debugger Pro - Step controls
+   */
+  stepInto(): void {
+    if (this.paused) {
+      this.paused = false;
+      this.stepMode = 'step-into';
+      this.stepOverDepth = -1;
+      this.stepOutDepth = -1;
+    }
+  }
+
+  stepOver(): void {
+    if (this.paused) {
+      this.paused = false;
+      this.stepMode = 'step-over';
+      this.stepOverDepth = this.callStack.length;
+      this.stepOutDepth = -1;
+    }
+  }
+
+  stepOut(): void {
+    if (this.paused && this.callStack.length > 0) {
+      this.paused = false;
+      this.stepMode = 'step-out';
+      this.stepOutDepth = this.callStack.length;
+      this.stepOverDepth = -1;
+    }
+  }
+
+  continue(): void {
+    if (this.paused) {
+      this.paused = false;
+      this.stepMode = 'run';
+      this.stepOverDepth = -1;
+      this.stepOutDepth = -1;
+    }
+  }
+
 }
 

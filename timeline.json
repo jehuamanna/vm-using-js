@@ -273,6 +273,28 @@
         "Exception propagation",
         "Error recovery"
       ]
+    },
+    {
+      "number": 14,
+      "title": "Debugger Pro",
+      "commit": "feat(lesson): 14 - Debugger Pro",
+      "files": [
+        "src/core/vm.ts",
+        "src/pages/Episode14.tsx",
+        "src/App.tsx",
+        "scripts/lessons/14_debugger_pro.md"
+      ],
+      "duration": "30-35 minutes",
+      "topics": [
+        "Step controls",
+        "Step Into / Over / Out",
+        "Breakpoints",
+        "Watches panel",
+        "Call stack visualization",
+        "Stack view",
+        "Exception pausing",
+        "Professional debugging tools"
+      ]
     }
   ],
   "last_updated": "2024-01-01"
