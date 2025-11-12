@@ -266,14 +266,68 @@ print result;`)
     const disassembly = useMemo(() => disassemble(bytecode), [bytecode])
     const containerRef = React.useRef<HTMLDivElement>(null)
     const currentLineRef = React.useRef<HTMLDivElement>(null)
+    const previousPcRef = React.useRef<number>(-1)
     
-    // Auto-scroll to current instruction
+    // Smooth scroll to current instruction relative to current viewport
     React.useEffect(() => {
       if (currentPc >= 0 && currentLineRef.current && containerRef.current) {
-        currentLineRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        })
+        const container = containerRef.current
+        const targetLine = currentLineRef.current
+        
+        // Get container and line positions relative to viewport
+        const containerRect = container.getBoundingClientRect()
+        const lineRect = targetLine.getBoundingClientRect()
+        
+        // Calculate if line is visible in viewport (with padding)
+        const padding = 60 // pixels of padding from edges
+        const isVisible = 
+          lineRect.top >= containerRect.top + padding &&
+          lineRect.bottom <= containerRect.bottom - padding
+        
+        // Only scroll if line is not visible
+        if (!isVisible) {
+          // Get the current scroll position
+          const currentScrollTop = container.scrollTop
+          
+          // Calculate line position relative to container
+          // We need to find the position of the line relative to the scrollable container
+          let lineOffsetTop = 0
+          let element: HTMLElement | null = targetLine
+          
+          // Traverse up to find position relative to container
+          while (element && element !== container) {
+            lineOffsetTop += element.offsetTop
+            element = element.offsetParent as HTMLElement | null
+          }
+          
+          // If offsetParent is not the container, use getBoundingClientRect as fallback
+          if (element !== container) {
+            const containerRect = container.getBoundingClientRect()
+            const lineRect = targetLine.getBoundingClientRect()
+            lineOffsetTop = lineRect.top - containerRect.top + currentScrollTop
+          }
+          
+          const containerHeight = container.clientHeight
+          const lineHeight = targetLine.offsetHeight
+          
+          // Calculate desired scroll position to center the line in viewport
+          const desiredScrollTop = lineOffsetTop - (containerHeight / 2) + (lineHeight / 2)
+          
+          // Clamp to valid scroll range
+          const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
+          const clampedScrollTop = Math.max(0, Math.min(desiredScrollTop, maxScroll))
+          
+          // Only scroll if the target position is different from current
+          if (Math.abs(clampedScrollTop - currentScrollTop) > 1) {
+            // Smooth scroll from current position to target
+            container.scrollTo({
+              top: clampedScrollTop,
+              behavior: 'smooth'
+            })
+          }
+        }
+        
+        previousPcRef.current = currentPc
       }
     }, [currentPc])
     
