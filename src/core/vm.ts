@@ -260,7 +260,9 @@ export class TinyVM {
         case OPCODES.PRINT:
           const val = this.pop();
           this.output.push(val);
-          console.log(val);
+          if (this.debugMode) {
+            console.log(`[PRINT] Outputting value: ${val}`);
+          }
           this.pc++;
           break;
 
@@ -270,6 +272,9 @@ export class TinyVM {
           const jumpAddr = bytecode[this.pc];
           if (jumpAddr < 0 || jumpAddr >= bytecode.length) {
             throw new Error(`Invalid jump address: ${jumpAddr}`);
+          }
+          if (this.debugMode) {
+            console.log(`[JMP] Jumping from PC=${this.pc-1} to ${jumpAddr}`);
           }
           this.pc = jumpAddr;
           break;
@@ -294,6 +299,9 @@ export class TinyVM {
           this.pc++;
           const negAddr = bytecode[this.pc];
           const checkValue = this.pop();
+          if (this.debugMode) {
+            console.log(`[JMP_IF_NEG] PC=${this.pc-1}, value=${checkValue}, target=${negAddr}, will jump: ${checkValue < 0}`);
+          }
           if (checkValue < 0) {
             if (negAddr < 0 || negAddr >= bytecode.length) {
               throw new Error(`Invalid jump address: ${negAddr}`);
