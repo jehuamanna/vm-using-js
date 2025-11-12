@@ -369,7 +369,7 @@ export class CodeGenerator {
         this.bytecode.push(strLength)
         this.bytecode.push(OPCODES.LOAD)
         this.bytecode.push(tempAddr)
-        this.bytecode.push(OPCODES.STORE32) // Store length as 32-bit
+        this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit (address on stack)
         
         // Store each character as 8-bit value
         for (let i = 0; i < strLength; i++) {
@@ -667,7 +667,7 @@ export class CodeGenerator {
     this.bytecode.push(arrayLength)
     this.bytecode.push(OPCODES.LOAD)
     this.bytecode.push(tempAddr)
-    this.bytecode.push(OPCODES.STORE32) // Store length as 32-bit
+    this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit (address on stack)
     
     // Store each element as 32-bit value
     for (let i = 0; i < elements.length; i++) {

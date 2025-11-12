@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { compile } from '../compiler'
 import { TinyVM } from '../core/vm'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { useTheme } from '../components/theme-provider'
 import { 
-  Loader2, Code2, Play, Array, Type
+  Loader2, Code2, Play, Layers, Type
 } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
@@ -91,7 +91,7 @@ export function Episode16() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Array className="w-8 h-8" />
+            <Layers className="w-8 h-8" />
             Episode 16: Arrays & Strings
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -236,7 +236,7 @@ export function Episode16() {
         <CardContent className="space-y-4">
           <div>
             <h3 className="font-semibold mb-2 flex items-center gap-2">
-              <Array className="w-4 h-4" />
+              <Layers className="w-4 h-4" />
               Arrays
             </h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-4">
