@@ -5,4 +5,9 @@ node_modules/
 .idea/
 dist/
 build/
+.env
+.env.local
+.env.production.local
+.env.development.local
+*.tsbuildinfo
 

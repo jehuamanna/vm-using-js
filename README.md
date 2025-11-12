@@ -5,14 +5,27 @@ It is structured so each episode is committed individually (one commit per lesso
 
 ## 🚀 Quick Start
 
-### Browser (requires local server):
+### Development:
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
-# Then open http://localhost:8000/public/index.html
+# Then open http://localhost:5173 in your browser
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
 
-**Note:** ES modules require a local server to work. The `npm run dev` command starts a simple HTTP server.
+**Tech Stack:**
+- ⚛️ React 18 with TypeScript
+- ⚡ Vite for fast development and building
+- 🎨 Tailwind CSS for styling
+- 🧩 shadcn/ui for UI components
 
 ## 📚 Episodes
 
