@@ -202,6 +202,11 @@ export class TinyVM {
       
       const opcode = bytecode[this.pc];
       
+      // Debug: log every 100 instructions to track progress
+      if (this.debugMode && instructionCount % 100 === 0) {
+        console.log(`[VM] Executed ${instructionCount} instructions, PC=${this.pc}, opcode=${opcode} (${this.getOpcodeName(opcode)})`);
+      }
+      
       // Episode 14: Check for breakpoints (before executing)
       if (this.debugMode && this.breakpoints.has(this.pc)) {
         const bp = this.breakpoints.get(this.pc)!;
@@ -637,6 +642,9 @@ export class TinyVM {
           break;
 
         case OPCODES.HALT:
+          if (this.debugMode) {
+            console.log(`[HALT] Execution stopped at PC=${this.pc}`);
+          }
           this.running = false;
           this.pc++;
           break;

@@ -832,6 +832,7 @@ export class CodeGenerator {
   private patchJump(label: number, address: number): void {
     // Find the JMP, JMP_IF_ZERO, JMP_IF_NEG, or ENTER_TRY instruction that references this label
     // and replace the label with the actual address
+    let patched = false
     for (let i = 0; i < this.bytecode.length; i++) {
       if (
         (this.bytecode[i] === OPCODES.JMP || 
@@ -841,8 +842,13 @@ export class CodeGenerator {
         i + 1 < this.bytecode.length &&
         this.bytecode[i + 1] === label
       ) {
+        console.log(`[CODEGEN] Patching jump at position ${i}: label ${label} -> address ${address}`)
         this.bytecode[i + 1] = address
+        patched = true
       }
+    }
+    if (!patched) {
+      console.warn(`[CODEGEN] WARNING: Could not find label ${label} to patch!`)
     }
   }
 }
