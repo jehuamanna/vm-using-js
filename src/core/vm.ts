@@ -180,7 +180,7 @@ export class TinyVM {
       this.output = [];
       this.executionTrace = [];
       this.paused = false;
-      this.stepMode = debugMode ? 'step-into' : 'run';
+      this.stepMode = 'run'; // Always run mode, not step-into, even in debug mode
     } else {
       // When resuming, make sure we're not paused
       if (this.paused) {
