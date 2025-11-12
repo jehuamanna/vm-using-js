@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { compile } from '../compiler'
 import { TinyVM, ExecutionStep, Breakpoint, Watch } from '../core/vm'
-import { disassemble, formatDisassembly } from '../core/disassembler'
+import { disassemble } from '../core/disassembler'
+import { OPCODE_REFERENCE } from '../core/assembler'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Label } from '../components/ui/label'
@@ -10,7 +11,7 @@ import { useTheme } from '../components/theme-provider'
 import { 
   Loader2, Code2, Play, Pause, StepForward, SkipForward, 
   RotateCcw, ChevronDown, ChevronUp, FileCode, TreePine, 
-  AlertTriangle, Bug, Eye, List, MemoryStick
+  AlertTriangle, Bug, Eye, List, MemoryStick, Circle
 } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
@@ -227,6 +228,87 @@ print result;`)
     vm.removeWatch(index)
   }
 
+  // Disassembly component
+  const DisassemblyView = ({ bytecode, currentPc, breakpoints, onToggleBreakpoint, isDark }: {
+    bytecode: number[]
+    currentPc: number
+    breakpoints: Set<number>
+    onToggleBreakpoint: (address: number) => void
+    isDark: boolean
+  }) => {
+    const disassembly = useMemo(() => disassemble(bytecode), [bytecode])
+    const containerRef = React.useRef<HTMLDivElement>(null)
+    const currentLineRef = React.useRef<HTMLDivElement>(null)
+    
+    // Auto-scroll to current instruction
+    React.useEffect(() => {
+      if (currentPc >= 0 && currentLineRef.current && containerRef.current) {
+        currentLineRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        })
+      }
+    }, [currentPc])
+    
+    return (
+      <div ref={containerRef} className="font-mono text-xs overflow-auto bg-background" style={{ maxHeight: '500px' }}>
+        <div className="sticky top-0 bg-muted/80 backdrop-blur-sm border-b-2 border-border px-4 py-2 flex items-center gap-4 text-xs font-semibold z-10">
+          <div className="w-12 text-center">BP</div>
+          <div className="w-24">Address</div>
+          <div className="w-40">Bytes</div>
+          <div className="flex-1">Instruction</div>
+        </div>
+        {disassembly.lines.map((line, idx) => {
+          const isCurrent = line.address === currentPc
+          const hasBreakpoint = breakpoints.has(line.address)
+          const bytesStr = line.rawBytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')
+          const opcodeInfo = OPCODE_REFERENCE.find(op => op.value === line.opcode)
+          const mnemonicParts = line.mnemonic.split(' ')
+          const opcodeName = mnemonicParts[0]
+          const operands = mnemonicParts.slice(1).join(' ')
+          
+          return (
+            <div
+              key={idx}
+              ref={isCurrent ? currentLineRef : null}
+              className={`px-4 py-1.5 flex items-center gap-4 border-b border-border/30 hover:bg-muted/40 cursor-pointer transition-colors ${
+                isCurrent 
+                  ? 'bg-primary/15 border-l-4 border-l-primary shadow-sm' 
+                  : hasBreakpoint 
+                    ? 'bg-destructive/5' 
+                    : ''
+              }`}
+              onClick={() => onToggleBreakpoint(line.address)}
+            >
+              <div className="w-12 flex justify-center">
+                {hasBreakpoint && (
+                  <Circle className="h-3 w-3 fill-destructive text-destructive" />
+                )}
+              </div>
+              <div className={`w-24 font-mono text-sm ${isCurrent ? 'font-bold text-primary' : 'text-foreground'}`}>
+                0x{line.address.toString(16).padStart(4, '0').toUpperCase()}
+              </div>
+              <div className="w-40 font-mono text-muted-foreground text-[10px] tracking-wider">
+                {bytesStr.padEnd(20)}
+              </div>
+              <div className={`flex-1 text-sm ${isCurrent ? 'font-bold text-primary' : 'text-foreground'}`}>
+                <span className="font-semibold">{opcodeName}</span>
+                {operands && (
+                  <span className="text-muted-foreground ml-1">{operands}</span>
+                )}
+                {opcodeInfo && (
+                  <span className="ml-3 text-muted-foreground text-[10px] italic">
+                    // {opcodeInfo.description}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="container mx-auto max-w-7xl">
@@ -239,35 +321,18 @@ print result;`)
           </p>
         </div>
 
-        {/* Source Code Editor */}
+        {/* Compile Controls */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileCode className="h-5 w-5" />
-              Source Code
+              Compile & Debug
             </CardTitle>
             <CardDescription>
-              Compile and debug your programs with step-by-step execution
+              Compile your program and start debugging
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Mini Language Source</Label>
-              <div className="border border-border rounded-md overflow-hidden">
-                <CodeMirror
-                  value={sourceCode}
-                  height="300px"
-                  theme={isDark ? oneDark : undefined}
-                  extensions={[javascript()]}
-                  onChange={(value) => setSourceCode(value)}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: true,
-                  }}
-                />
-              </div>
-            </div>
-
             <div className="flex gap-2 flex-wrap">
               <Button
                 onClick={compileCode}
@@ -373,29 +438,100 @@ print result;`)
           </Card>
         )}
 
-        {/* Current Instruction */}
+        {/* Source Code and Disassembly Side by Side */}
+        {compilationResult && compilationResult.errors.length === 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Source Code Editor */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileCode className="h-5 w-5" />
+                  Source Code
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border border-border rounded-md overflow-hidden">
+                  <CodeMirror
+                    value={sourceCode}
+                    height="500px"
+                    theme={isDark ? oneDark : undefined}
+                    extensions={[javascript()]}
+                    onChange={(value) => setSourceCode(value)}
+                    basicSetup={{
+                      lineNumbers: true,
+                      foldGutter: true,
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Disassembly with Current Instruction Highlighting */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Code2 className="h-5 w-5" />
+                  Disassembly
+                  {isDebugging && currentStep && (
+                    <span className="ml-auto text-sm font-mono text-muted-foreground">
+                      PC: 0x{currentStep.pc.toString(16).padStart(4, '0').toUpperCase()}
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border border-border rounded-md overflow-hidden">
+                  <DisassemblyView
+                    bytecode={compilationResult.bytecode}
+                    currentPc={isDebugging && currentStep ? currentStep.pc : -1}
+                    breakpoints={breakpoints}
+                    onToggleBreakpoint={toggleBreakpoint}
+                    isDark={isDark}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Current Instruction Info */}
         {isDebugging && currentStep && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Current Instruction</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <span className="font-semibold">PC:</span> {currentStep.pc}
-                </div>
-                <div>
-                  <span className="font-semibold">Opcode:</span> {currentStep.opcodeName} (0x{currentStep.opcode.toString(16).padStart(2, '0')})
-                </div>
-                <div>
-                  <span className="font-semibold">Call Stack Depth:</span> {currentStep.callStackDepth}
-                </div>
-                {currentStep.error && (
-                  <div className="text-destructive">
-                    <span className="font-semibold">Error:</span> {currentStep.error}
+                  <div className="text-sm text-muted-foreground">Program Counter</div>
+                  <div className="font-mono font-semibold">
+                    0x{currentStep.pc.toString(16).padStart(4, '0').toUpperCase()} ({currentStep.pc})
                   </div>
-                )}
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Opcode</div>
+                  <div className="font-mono font-semibold">
+                    {currentStep.opcodeName}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    0x{currentStep.opcode.toString(16).padStart(2, '0').toUpperCase()}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Call Stack Depth</div>
+                  <div className="font-semibold">{currentStep.callStackDepth}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Stack Size</div>
+                  <div className="font-semibold">{currentStep.stack.length}</div>
+                </div>
               </div>
+              {currentStep.error && (
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <div className="text-sm font-semibold text-destructive mb-1">Error:</div>
+                  <div className="text-sm text-destructive">{currentStep.error}</div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -467,7 +603,7 @@ print result;`)
               <div className="space-y-1">
                 {vm.callStack.map((frame, idx) => (
                   <div key={idx} className="p-2 bg-muted rounded-md font-mono text-sm">
-                    Frame {vm.callStack.length - idx - 1}: Return @ {frame.returnAddress}, Stack Pointer: {frame.stackPointer}
+                    Frame {vm.callStack.length - idx - 1}: Return @ 0x{frame.returnAddress.toString(16).padStart(4, '0').toUpperCase()}, Stack Pointer: {frame.stackPointer}
                   </div>
                 ))}
               </div>
