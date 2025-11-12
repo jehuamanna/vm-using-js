@@ -18,6 +18,8 @@ export const OPCODES = {
   READ: 0x0B,        // Episode 4: Read value from input
   CALL: 0x0C,        // Episode 5: Call function at address
   RET: 0x0D,         // Episode 5: Return from function
+  LOAD_LOCAL: 0x0E,  // Episode 5: Load from frame-relative local variable
+  STORE_LOCAL: 0x0F, // Episode 5: Store to frame-relative local variable
   HALT: 0x00
 } as const;
 
@@ -26,6 +28,7 @@ export type Opcode = typeof OPCODES[keyof typeof OPCODES];
 interface CallFrame {
   returnAddress: number;
   stackPointer: number; // Stack size when function was called
+  frameBase: number;    // Base address in memory for local variables
 }
 
 export class TinyVM {
@@ -201,10 +204,14 @@ export class TinyVM {
           }
           // Save return address (next instruction after CALL and its operand)
           const returnAddr = this.pc + 1;
-          // Save current stack pointer (for frame management)
+          // Calculate frame base: use call stack depth * 16 to avoid conflicts
+          // Each frame gets 16 local variable slots (0-15)
+          const frameBase = this.callStack.length * 16;
+          // Save current stack pointer and frame base (for frame management)
           this.callStack.push({
             returnAddress: returnAddr,
-            stackPointer: this.stack.length
+            stackPointer: this.stack.length,
+            frameBase: frameBase
           });
           // Jump to function
           this.pc = callAddr;
@@ -216,8 +223,43 @@ export class TinyVM {
             throw new Error('RET called but call stack is empty');
           }
           const frame = this.callStack.pop()!;
+          // Clear local variables for this frame (optional, for cleanup)
+          // In a real VM, we might want to zero out the frame
           // Restore program counter to return address
           this.pc = frame.returnAddress;
+          break;
+
+        case OPCODES.LOAD_LOCAL:
+          // Load from frame-relative local variable
+          this.pc++;
+          const localOffset = bytecode[this.pc];
+          if (this.callStack.length === 0) {
+            throw new Error('LOAD_LOCAL called but no active function frame');
+          }
+          const currentFrame = this.callStack[this.callStack.length - 1];
+          const localAddr = currentFrame.frameBase + localOffset;
+          if (localAddr < 0 || localAddr >= this.memory.length) {
+            throw new Error(`Invalid local variable address: ${localAddr}`);
+          }
+          this.push(this.memory[localAddr]);
+          this.pc++;
+          break;
+
+        case OPCODES.STORE_LOCAL:
+          // Store to frame-relative local variable
+          this.pc++;
+          const storeLocalOffset = bytecode[this.pc];
+          if (this.callStack.length === 0) {
+            throw new Error('STORE_LOCAL called but no active function frame');
+          }
+          const currentFrame2 = this.callStack[this.callStack.length - 1];
+          const storeLocalAddr = currentFrame2.frameBase + storeLocalOffset;
+          if (storeLocalAddr < 0 || storeLocalAddr >= this.memory.length) {
+            throw new Error(`Invalid local variable address: ${storeLocalAddr}`);
+          }
+          const valueToStoreLocal = this.pop();
+          this.memory[storeLocalAddr] = valueToStoreLocal;
+          this.pc++;
           break;
 
         case OPCODES.HALT:
