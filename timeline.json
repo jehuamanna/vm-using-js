@@ -82,14 +82,35 @@
         "src/App.tsx",
         "scripts/lessons/05_functions_and_call_stack.md"
       ],
-      "duration": "22-25 minutes",
+      "duration": "25-30 minutes",
       "topics": [
         "Function calls",
         "CALL and RET instructions",
         "Call stack implementation",
-        "Stack frames",
+        "Stack frames with LOAD_LOCAL and STORE_LOCAL",
+        "Frame-relative local variables",
         "Recursive functions",
-        "Fibonacci example"
+        "Fibonacci example (double recursion)",
+        "Factorial example (single recursion)"
+      ]
+    },
+    {
+      "number": 6,
+      "title": "Error Handling & Debugging",
+      "commit": "feat(lesson): 06 - Error Handling & Debugging",
+      "files": [
+        "src/core/vm.ts",
+        "src/pages/Episode06.tsx",
+        "scripts/lessons/06_error_handling_and_debugging.md"
+      ],
+      "duration": "20-25 minutes",
+      "topics": [
+        "Error handling",
+        "Stack underflow/overflow detection",
+        "Invalid opcode handling",
+        "Debug mode",
+        "Execution tracing",
+        "Step-by-step debugging"
       ]
     }
   ],

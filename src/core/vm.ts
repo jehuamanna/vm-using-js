@@ -1,5 +1,5 @@
 /**
- * Episode 1-5: Tiny VM with Control Flow, Memory, I/O, and Functions
+ * Episode 1-6: Tiny VM with Control Flow, Memory, I/O, Functions, and Debugging
  * A minimal stack-based virtual machine implementation
  */
 
@@ -31,6 +31,16 @@ interface CallFrame {
   frameBase: number;    // Base address in memory for local variables
 }
 
+export interface ExecutionStep {
+  pc: number;
+  opcode: number;
+  opcodeName: string;
+  stack: number[];
+  memory?: number[];
+  callStackDepth: number;
+  error?: string;
+}
+
 export class TinyVM {
   stack: number[] = [];
   memory: number[];
@@ -39,6 +49,12 @@ export class TinyVM {
   output: number[] = [];
   inputQueue: number[] = []; // Episode 4: Queue for input values
   callStack: CallFrame[] = []; // Episode 5: Call stack for function calls
+  
+  // Episode 6: Debugging support
+  debugMode: boolean = false;
+  executionTrace: ExecutionStep[] = [];
+  maxStackSize: number = 1000; // Episode 6: Stack overflow protection
+  stepCallback?: (step: ExecutionStep) => void; // Episode 6: Step callback for debugging
 
   constructor(memorySize: number = 256) {
     this.memory = new Array(memorySize).fill(0);
@@ -59,9 +75,35 @@ export class TinyVM {
   }
 
   /**
+   * Get opcode name for debugging
+   */
+  private getOpcodeName(opcode: number): string {
+    const entries = Object.entries(OPCODES);
+    const entry = entries.find(([_, value]) => value === opcode);
+    return entry ? entry[0] : `UNKNOWN(0x${opcode.toString(16)})`;
+  }
+
+  /**
+   * Create execution step for debugging
+   */
+  private createExecutionStep(opcode: number, error?: string): ExecutionStep {
+    return {
+      pc: this.pc,
+      opcode,
+      opcodeName: this.getOpcodeName(opcode),
+      stack: [...this.stack],
+      callStackDepth: this.callStack.length,
+      error
+    };
+  }
+
+  /**
    * Push a value onto the stack
    */
   push(value: number): void {
+    if (this.stack.length >= this.maxStackSize) {
+      throw new Error(`Stack overflow: stack size (${this.stack.length}) exceeds maximum (${this.maxStackSize})`);
+    }
     this.stack.push(value);
   }
 
@@ -70,7 +112,7 @@ export class TinyVM {
    */
   pop(): number {
     if (this.stack.length === 0) {
-      throw new Error('Stack underflow');
+      throw new Error('Stack underflow: attempted to pop from empty stack');
     }
     return this.stack.pop()!;
   }
@@ -78,15 +120,27 @@ export class TinyVM {
   /**
    * Execute a bytecode program
    */
-  execute(bytecode: number[]): number[] {
+  execute(bytecode: number[], debugMode: boolean = false): number[] {
     this.pc = 0;
     this.running = true;
     this.output = [];
+    this.debugMode = debugMode;
+    this.executionTrace = [];
 
     while (this.running && this.pc < bytecode.length) {
       const opcode = bytecode[this.pc];
-
-      switch (opcode) {
+      
+      // Episode 6: Debug mode - record execution step
+      if (this.debugMode) {
+        const step = this.createExecutionStep(opcode);
+        this.executionTrace.push(step);
+        if (this.stepCallback) {
+          this.stepCallback(step);
+        }
+      }
+      
+      try {
+        switch (opcode) {
         case OPCODES.PUSH:
           this.pc++;
           const value = bytecode[this.pc];
@@ -268,7 +322,23 @@ export class TinyVM {
           break;
 
         default:
-          throw new Error(`Unknown opcode: 0x${opcode.toString(16)}`);
+          throw new Error(`Unknown opcode: 0x${opcode.toString(16)} at PC=${this.pc}`);
+      }
+      } catch (error) {
+        // Episode 6: Enhanced error handling with context
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const opcodeName = this.getOpcodeName(opcode);
+        const enhancedError = `Error at PC=${this.pc} (${opcodeName}): ${errorMessage}`;
+        
+        if (this.debugMode) {
+          const errorStep = this.createExecutionStep(opcode, enhancedError);
+          this.executionTrace.push(errorStep);
+          if (this.stepCallback) {
+            this.stepCallback(errorStep);
+          }
+        }
+        
+        throw new Error(enhancedError);
       }
     }
 
@@ -286,6 +356,23 @@ export class TinyVM {
     this.output = [];
     this.inputQueue = [];
     this.callStack = [];
+    this.executionTrace = [];
+    this.debugMode = false;
+  }
+  
+  /**
+   * Episode 6: Enable debug mode with step callback
+   */
+  setDebugMode(enabled: boolean, stepCallback?: (step: ExecutionStep) => void): void {
+    this.debugMode = enabled;
+    this.stepCallback = stepCallback;
+  }
+  
+  /**
+   * Episode 6: Get execution trace
+   */
+  getExecutionTrace(): ExecutionStep[] {
+    return [...this.executionTrace];
   }
 }
 
