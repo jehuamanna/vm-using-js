@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VM.js Series - Episode 1: Tiny VM</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 100%;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+
+    .demo-section {
+      margin-bottom: 30px;
+    }
+
+    .demo-section h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+    }
+
+    .code-block {
+      background: #f5f5f5;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+    }
+
+    .bytecode {
+      font-size: 0.9em;
+      color: #555;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      margin: 5px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #5568d3;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      min-height: 100px;
+      white-space: pre-wrap;
+    }
+
+    .stack-visual {
+      background: #f9f9f9;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+
+    .stack-item {
+      background: #667eea;
+      color: white;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stack-empty {
+      color: #999;
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Episode 1: Introduction & Tiny VM</h1>
+    <p class="subtitle">A minimal stack-based virtual machine in JavaScript</p>
+
+    <div class="demo-section">
+      <h2>Demo 1: Simple Addition</h2>
+      <p>Calculate 5 + 3</p>
+      <div class="code-block bytecode">
+        PUSH 5<br>
+        PUSH 3<br>
+        ADD<br>
+        PRINT<br>
+        HALT
+      </div>
+      <button onclick="runDemo1()">Run Demo 1</button>
+      <div id="output1" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 2: Arithmetic Operations</h2>
+      <p>Calculate (10 - 3) * 2</p>
+      <div class="code-block bytecode">
+        PUSH 10<br>
+        PUSH 3<br>
+        SUB<br>
+        PUSH 2<br>
+        MUL<br>
+        PRINT<br>
+        HALT
+      </div>
+      <button onclick="runDemo2()">Run Demo 2</button>
+      <div id="output2" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Stack Visualization</h2>
+      <div id="stack-visual" class="stack-visual">
+        <div class="stack-empty">Stack is empty</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Episode 1: Tiny VM - Inlined for standalone execution
+    const OPCODES = {
+      PUSH: 0x01,
+      ADD: 0x02,
+      SUB: 0x03,
+      MUL: 0x04,
+      PRINT: 0x05,
+      HALT: 0x00
+    };
+
+    class TinyVM {
+      constructor() {
+        this.stack = [];
+        this.pc = 0;
+        this.running = false;
+        this.output = [];
+      }
+
+      push(value) {
+        this.stack.push(value);
+      }
+
+      pop() {
+        if (this.stack.length === 0) {
+          throw new Error('Stack underflow');
+        }
+        return this.stack.pop();
+      }
+
+      execute(bytecode) {
+        this.pc = 0;
+        this.running = true;
+        this.output = [];
+
+        while (this.running && this.pc < bytecode.length) {
+          const opcode = bytecode[this.pc];
+
+          switch (opcode) {
+            case OPCODES.PUSH:
+              this.pc++;
+              const value = bytecode[this.pc];
+              this.push(value);
+              this.pc++;
+              break;
+
+            case OPCODES.ADD:
+              const b = this.pop();
+              const a = this.pop();
+              this.push(a + b);
+              this.pc++;
+              break;
+
+            case OPCODES.SUB:
+              const subB = this.pop();
+              const subA = this.pop();
+              this.push(subA - subB);
+              this.pc++;
+              break;
+
+            case OPCODES.MUL:
+              const mulB = this.pop();
+              const mulA = this.pop();
+              this.push(mulA * mulB);
+              this.pc++;
+              break;
+
+            case OPCODES.PRINT:
+              const val = this.pop();
+              this.output.push(val);
+              console.log(val);
+              this.pc++;
+              break;
+
+            case OPCODES.HALT:
+              this.running = false;
+              this.pc++;
+              break;
+
+            default:
+              throw new Error(`Unknown opcode: 0x${opcode.toString(16)}`);
+          }
+        }
+
+        return this.output;
+      }
+
+      reset() {
+        this.stack = [];
+        this.pc = 0;
+        this.running = false;
+        this.output = [];
+      }
+    }
+
+    window.vm = new TinyVM();
+    window.OPCODES = OPCODES;
+
+    function updateStackVisual() {
+      const visual = document.getElementById('stack-visual');
+      if (window.vm.stack.length === 0) {
+        visual.innerHTML = '<div class="stack-empty">Stack is empty</div>';
+      } else {
+        visual.innerHTML = window.vm.stack
+          .slice()
+          .reverse()
+          .map(val => `<div class="stack-item">${val}</div>`)
+          .join('');
+      }
+    }
+
+    window.runDemo1 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output1');
+      output.textContent = 'Running...\n';
+
+      // Bytecode: PUSH 5, PUSH 3, ADD, PRINT, HALT
+      const bytecode = [
+        OPCODES.PUSH, 5,
+        OPCODES.PUSH, 3,
+        OPCODES.ADD,
+        OPCODES.PRINT,
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n');
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+      updateStackVisual();
+    };
+
+    window.runDemo2 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output2');
+      output.textContent = 'Running...\n';
+
+      // Bytecode: PUSH 10, PUSH 3, SUB, PUSH 2, MUL, PRINT, HALT
+      const bytecode = [
+        OPCODES.PUSH, 10,
+        OPCODES.PUSH, 3,
+        OPCODES.SUB,
+        OPCODES.PUSH, 2,
+        OPCODES.MUL,
+        OPCODES.PRINT,
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n');
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+      updateStackVisual();
+    };
+
+    // Initial stack visualization
+    updateStackVisual();
+  </script>
+</body>
+</html>
+

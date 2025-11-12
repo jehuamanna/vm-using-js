@@ -1,0 +1,20 @@
+{
+  "name": "vm-js-series",
+  "version": "0.1.0",
+  "description": "Build a Virtual Machine in JavaScript - Educational YouTube Series",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "virtual-machine",
+    "javascript",
+    "education",
+    "compiler",
+    "runtime"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

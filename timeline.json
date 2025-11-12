@@ -1,0 +1,23 @@
+{
+  "series": "Build a Virtual Machine in JavaScript",
+  "episodes": [
+    {
+      "number": 1,
+      "title": "Introduction & Tiny VM",
+      "commit": "feat(lesson): 01 - Introduction & Tiny VM",
+      "files": [
+        "src/core/vm.js",
+        "public/index.html",
+        "scripts/lessons/01_introduction_tiny_vm.md"
+      ],
+      "duration": "15-20 minutes",
+      "topics": [
+        "Virtual Machine basics",
+        "Stack-based execution",
+        "Basic opcodes (PUSH, ADD, SUB, MUL, PRINT)"
+      ]
+    }
+  ],
+  "last_updated": "2024-01-01"
+}
+
