@@ -86,14 +86,12 @@ function App() {
             <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[140px] flex items-start">
-                  <div>
-                    PUSH 5<br />
-                    PUSH 3<br />
-                    ADD<br />
-                    PRINT<br />
-                    HALT
-                  </div>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[180px] overflow-y-auto">
+                  PUSH 5<br />
+                  PUSH 3<br />
+                  ADD<br />
+                  PRINT<br />
+                  HALT
                 </div>
               </div>
               
@@ -120,16 +118,14 @@ function App() {
             <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[140px] flex items-start">
-                  <div>
-                    PUSH 10<br />
-                    PUSH 3<br />
-                    SUB<br />
-                    PUSH 2<br />
-                    MUL<br />
-                    PRINT<br />
-                    HALT
-                  </div>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[180px] overflow-y-auto">
+                  PUSH 10<br />
+                  PUSH 3<br />
+                  SUB<br />
+                  PUSH 2<br />
+                  MUL<br />
+                  PRINT<br />
+                  HALT
                 </div>
               </div>
               
