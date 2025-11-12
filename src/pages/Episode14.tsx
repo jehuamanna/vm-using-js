@@ -274,9 +274,7 @@ print result;`)
     const disassembly = useMemo(() => disassemble(bytecode), [bytecode])
     const containerRef = React.useRef<HTMLDivElement>(null)
     const currentLineRef = React.useRef<HTMLDivElement>(null)
-    const previousPcRef = React.useRef<number>(-1)
     const savedScrollPositionRef = React.useRef<number | null>(null)
-    const isScrollingRef = React.useRef<boolean>(false)
     const shouldPreserveScrollRef = React.useRef<boolean>(false)
     
     // Wrapper for onToggleBreakpoint that saves scroll position before state update
@@ -289,60 +287,28 @@ print result;`)
       onToggleBreakpoint(address)
     }, [onToggleBreakpoint])
     
-    // Track previous scroll position to detect resets
-    const previousScrollRef = React.useRef<number | null>(null)
-    const previousPcForScrollRef = React.useRef<number>(-1)
-    
-    // Save scroll position before PC changes
-    React.useLayoutEffect(() => {
-      const container = containerRef.current
-      if (!container) return
-      
-      // Save scroll position before PC changes (for restoration if reset)
-      if (previousPcForScrollRef.current !== currentPc && previousPcForScrollRef.current >= 0) {
-        previousScrollRef.current = container.scrollTop
-      }
-      previousPcForScrollRef.current = currentPc
-    }, [currentPc])
-    
-    // Restore scroll position after re-render if it was reset (for breakpoint toggles)
+    // Restore scroll position after re-render (for breakpoint toggles)
     React.useLayoutEffect(() => {
       const container = containerRef.current
       if (!container) return
       
       // For breakpoint toggles, restore saved position
-      if (shouldPreserveScrollRef.current && savedScrollPositionRef.current !== null && !isScrollingRef.current) {
+      if (shouldPreserveScrollRef.current && savedScrollPositionRef.current !== null) {
         container.scrollTop = savedScrollPositionRef.current
         savedScrollPositionRef.current = null
         shouldPreserveScrollRef.current = false
       }
     })
     
-    // Track PC changes for scroll-to-current-line logic
-    React.useEffect(() => {
-      previousPcRef.current = currentPc
-    }, [currentPc])
-    
-    // Smooth scroll to current instruction relative to current viewport
+    // Scroll to current instruction relative to current viewport
     React.useEffect(() => {
       if (currentPc >= 0 && currentLineRef.current && containerRef.current) {
         const container = containerRef.current
         const targetLine = currentLineRef.current
         
-        // Use requestAnimationFrame to ensure DOM is ready and scroll position is stable
+        // Use requestAnimationFrame to ensure DOM is ready
         requestAnimationFrame(() => {
           if (!container || !targetLine) return
-          
-          // Restore scroll position if it was reset during re-render (PC change)
-          // This ensures we start from the correct position for relative scrolling
-          if (previousScrollRef.current !== null && !isScrollingRef.current) {
-            // Only restore if scroll was reset (went to 0 when it shouldn't have)
-            if (container.scrollTop === 0 && previousScrollRef.current > 0) {
-              container.scrollTop = previousScrollRef.current
-            }
-            // Clear the saved position after using it
-            previousScrollRef.current = null
-          }
           
           // Get container and line positions relative to viewport
           const containerRect = container.getBoundingClientRect()
@@ -356,10 +322,7 @@ print result;`)
           
           // Only scroll if line is not visible
           if (!isVisible) {
-            isScrollingRef.current = true
-            
             // Calculate the line's position relative to the container's scrollable content
-            // Use getBoundingClientRect to get current viewport positions
             const lineTopInViewport = lineRect.top
             const containerTopInViewport = containerRect.top
             
@@ -376,7 +339,6 @@ print result;`)
             
             // Only scroll if there's a meaningful change
             if (Math.abs(scrollDelta) > 1) {
-              // Get current scroll position - this is the key: use the ACTUAL current position
               const currentScrollTop = container.scrollTop
               const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
               
@@ -392,18 +354,9 @@ print result;`)
               // Use relative scrolling (scrollBy) - moves relative to current position
               container.scrollBy({
                 top: clampedDelta,
-                behavior: 'smooth'
+                behavior: 'instant'
               })
-              
-              // Reset scrolling flag after animation completes
-              setTimeout(() => {
-                isScrollingRef.current = false
-              }, 300) // Approximate animation duration
-            } else {
-              isScrollingRef.current = false
             }
-          } else {
-            isScrollingRef.current = false
           }
         })
       }
