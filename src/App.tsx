@@ -77,16 +77,16 @@ function App() {
           <ThemeToggle />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
+        <div className="grid gap-6 md:grid-cols-2 md:items-start">
+          <Card className="flex flex-col h-full">
             <CardHeader>
               <CardTitle>Demo 1: Simple Addition</CardTitle>
               <CardDescription>Calculate 5 + 3</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
+            <CardContent className="flex flex-col flex-1 space-y-6">
+              <div className="space-y-2 flex-shrink-0">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed">
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed min-h-[120px]">
                   PUSH 5<br />
                   PUSH 3<br />
                   ADD<br />
@@ -95,30 +95,30 @@ function App() {
                 </div>
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center flex-shrink-0">
                 <Button onClick={runDemo1} className="min-w-[140px]">
                   Run Demo 1
                 </Button>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 flex flex-col">
                 <label className="text-sm font-semibold text-foreground">Output</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border">
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border flex-1">
                   {output1}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="flex flex-col h-full">
             <CardHeader>
               <CardTitle>Demo 2: Arithmetic Operations</CardTitle>
               <CardDescription>Calculate (10 - 3) * 2</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
+            <CardContent className="flex flex-col flex-1 space-y-6">
+              <div className="space-y-2 flex-shrink-0">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed">
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed min-h-[120px]">
                   PUSH 10<br />
                   PUSH 3<br />
                   SUB<br />
@@ -129,15 +129,15 @@ function App() {
                 </div>
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center flex-shrink-0">
                 <Button onClick={runDemo2} className="min-w-[140px]">
                   Run Demo 2
                 </Button>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 flex flex-col">
                 <label className="text-sm font-semibold text-foreground">Output</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border">
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border flex-1">
                   {output2}
                 </div>
               </div>
