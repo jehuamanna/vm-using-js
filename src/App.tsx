@@ -83,19 +83,27 @@ function App() {
               <CardTitle>Demo 1: Simple Addition</CardTitle>
               <CardDescription>Calculate 5 + 3</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="bg-slate-900 dark:bg-slate-950 text-green-400 dark:text-green-300 p-4 rounded-md font-mono text-sm mb-4 border-l-4 border-primary">
-                PUSH 5<br />
-                PUSH 3<br />
-                ADD<br />
-                PRINT<br />
-                HALT
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Bytecode</label>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border">
+                  PUSH 5<br />
+                  PUSH 3<br />
+                  ADD<br />
+                  PRINT<br />
+                  HALT
+                </div>
               </div>
-              <Button onClick={runDemo1} className="w-full mb-4">
-                Run Demo 1
-              </Button>
-              <div className="bg-slate-900 dark:bg-slate-950 text-slate-100 dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap">
-                {output1}
+              <div>
+                <Button onClick={runDemo1} className="w-full">
+                  Run Demo 1
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Output</label>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border">
+                  {output1}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -105,21 +113,29 @@ function App() {
               <CardTitle>Demo 2: Arithmetic Operations</CardTitle>
               <CardDescription>Calculate (10 - 3) * 2</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="bg-slate-900 dark:bg-slate-950 text-green-400 dark:text-green-300 p-4 rounded-md font-mono text-sm mb-4 border-l-4 border-primary">
-                PUSH 10<br />
-                PUSH 3<br />
-                SUB<br />
-                PUSH 2<br />
-                MUL<br />
-                PRINT<br />
-                HALT
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Bytecode</label>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border">
+                  PUSH 10<br />
+                  PUSH 3<br />
+                  SUB<br />
+                  PUSH 2<br />
+                  MUL<br />
+                  PRINT<br />
+                  HALT
+                </div>
               </div>
-              <Button onClick={runDemo2} className="w-full mb-4">
-                Run Demo 2
-              </Button>
-              <div className="bg-slate-900 dark:bg-slate-950 text-slate-100 dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap">
-                {output2}
+              <div>
+                <Button onClick={runDemo2} className="w-full">
+                  Run Demo 2
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Output</label>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border">
+                  {output2}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -139,7 +155,7 @@ function App() {
                 {stack.slice().reverse().map((val, idx) => (
                   <div
                     key={idx}
-                    className="bg-primary text-primary-foreground p-3 rounded-md text-center font-mono"
+                    className="bg-muted dark:bg-secondary text-foreground p-3 rounded-md text-center font-mono border border-border"
                   >
                     [{stack.length - idx - 1}]: {val}
                   </div>
