@@ -439,34 +439,34 @@ print result;`)
         )}
 
         {/* Source Code and Disassembly Side by Side */}
-        {compilationResult && compilationResult.errors.length === 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Source Code Editor */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileCode className="h-5 w-5" />
-                  Source Code
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="border border-border rounded-md overflow-hidden">
-                  <CodeMirror
-                    value={sourceCode}
-                    height="500px"
-                    theme={isDark ? oneDark : undefined}
-                    extensions={[javascript()]}
-                    onChange={(value) => setSourceCode(value)}
-                    basicSetup={{
-                      lineNumbers: true,
-                      foldGutter: true,
-                    }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+        <div className={`grid gap-6 mb-6 ${compilationResult && compilationResult.errors.length === 0 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+          {/* Source Code Editor - Always Visible */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileCode className="h-5 w-5" />
+                Source Code
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="border border-border rounded-md overflow-hidden">
+                <CodeMirror
+                  value={sourceCode}
+                  height="500px"
+                  theme={isDark ? oneDark : undefined}
+                  extensions={[javascript()]}
+                  onChange={(value) => setSourceCode(value)}
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: true,
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Disassembly with Current Instruction Highlighting */}
+          {/* Disassembly with Current Instruction Highlighting - Only when compilation succeeds */}
+          {compilationResult && compilationResult.errors.length === 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -491,8 +491,8 @@ print result;`)
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Current Instruction Info */}
         {isDebugging && currentStep && (
