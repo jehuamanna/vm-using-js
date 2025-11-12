@@ -3,7 +3,7 @@
  * Converts AST to bytecode
  */
 
-import { ASTNode, Program, Statement, Expression } from './parser'
+import { Program, Statement, Expression } from './parser'
 import { OPCODES } from '../core/vm'
 
 export class CodeGenerator {
@@ -13,6 +13,10 @@ export class CodeGenerator {
   private nextVariableAddress: number = 0
   private labelCounter: number = 0
   private functionBodies: Array<{ name: string; body: Statement[]; parameters: string[] }> = []
+  private currentFunctionParams: Map<string, number> = new Map() // Parameter name -> local offset
+  private currentFunctionLocals: Map<string, number> = new Map() // Local variable name -> local offset
+  private nextLocalOffset: number = 0
+  private isInFunction: boolean = false
 
   generate(ast: Program): number[] {
     this.bytecode = []
@@ -44,6 +48,29 @@ export class CodeGenerator {
       const funcAddress = this.bytecode.length
       this.functionMap.set(func.name, funcAddress)
       
+      // Set up function context
+      this.isInFunction = true
+      this.currentFunctionParams.clear()
+      this.currentFunctionLocals.clear()
+      this.nextLocalOffset = func.parameters.length // Start locals after parameters
+      
+      // Map parameters to local offsets (0, 1, 2, ...)
+      // Arguments are pushed in order: arg0, arg1, arg2, ...
+      // Stack top has last argument, so we pop in reverse
+      for (let i = 0; i < func.parameters.length; i++) {
+        this.currentFunctionParams.set(func.parameters[i], i)
+      }
+      
+      // Pop arguments from stack into local variables
+      // Stack: [arg0, arg1, arg2] with arg2 on top
+      // We pop from top to bottom and store in reverse order
+      for (let i = func.parameters.length - 1; i >= 0; i--) {
+        const localOffset = i
+        // Pop from stack and store in local
+        this.bytecode.push(OPCODES.STORE_LOCAL)
+        this.bytecode.push(localOffset)
+      }
+      
       // Generate function body
       for (const stmt of func.body) {
         this.generateStatement(stmt)
@@ -52,6 +79,12 @@ export class CodeGenerator {
       // Add return if not already present
       // (Check if last statement is return - for now, assume explicit return)
       this.bytecode.push(OPCODES.RET)
+      
+      // Clear function context
+      this.isInFunction = false
+      this.currentFunctionParams.clear()
+      this.currentFunctionLocals.clear()
+      this.nextLocalOffset = 0
     }
 
     // Generate main code
@@ -103,18 +136,35 @@ export class CodeGenerator {
   }
 
   private generateLetStatement(stmt: { name: string; value: Expression }): void {
-    // Allocate variable address if not exists
-    if (!this.variableMap.has(stmt.name)) {
-      this.variableMap.set(stmt.name, this.nextVariableAddress++)
-    }
-
     // Generate code for value expression
     this.generateExpression(stmt.value)
 
-    // Store in variable
-    const address = this.variableMap.get(stmt.name)!
-    this.bytecode.push(OPCODES.STORE)
-    this.bytecode.push(address)
+    // Check if we're in a function and this is a parameter or local
+    if (this.isInFunction && (this.currentFunctionParams.has(stmt.name) || this.currentFunctionLocals.has(stmt.name))) {
+      // It's a parameter or local variable
+      let localOffset: number
+      if (this.currentFunctionParams.has(stmt.name)) {
+        localOffset = this.currentFunctionParams.get(stmt.name)!
+      } else {
+        localOffset = this.currentFunctionLocals.get(stmt.name)!
+      }
+      this.bytecode.push(OPCODES.STORE_LOCAL)
+      this.bytecode.push(localOffset)
+    } else if (this.isInFunction) {
+      // New local variable in function
+      const localOffset = this.nextLocalOffset++
+      this.currentFunctionLocals.set(stmt.name, localOffset)
+      this.bytecode.push(OPCODES.STORE_LOCAL)
+      this.bytecode.push(localOffset)
+    } else {
+      // Global variable
+      if (!this.variableMap.has(stmt.name)) {
+        this.variableMap.set(stmt.name, this.nextVariableAddress++)
+      }
+      const address = this.variableMap.get(stmt.name)!
+      this.bytecode.push(OPCODES.STORE)
+      this.bytecode.push(address)
+    }
   }
 
   private generateIfStatement(stmt: {
@@ -231,6 +281,21 @@ export class CodeGenerator {
         break
 
       case 'Identifier':
+        // Check if it's a function parameter or local variable first
+        if (this.isInFunction) {
+          if (this.currentFunctionParams.has(expr.name)) {
+            const localOffset = this.currentFunctionParams.get(expr.name)!
+            this.bytecode.push(OPCODES.LOAD_LOCAL)
+            this.bytecode.push(localOffset)
+            break
+          } else if (this.currentFunctionLocals.has(expr.name)) {
+            const localOffset = this.currentFunctionLocals.get(expr.name)!
+            this.bytecode.push(OPCODES.LOAD_LOCAL)
+            this.bytecode.push(localOffset)
+            break
+          }
+        }
+        // Check global variables
         const address = this.variableMap.get(expr.name)
         if (address === undefined) {
           throw new Error(`Undefined variable: ${expr.name}`)
@@ -325,11 +390,34 @@ export class CodeGenerator {
         break
 
       case 'AssignmentExpression':
+        this.generateExpression(expr.value)
+        
+        // Check if it's a function parameter or local variable
+        if (this.isInFunction) {
+          if (this.currentFunctionParams.has(expr.name)) {
+            const localOffset = this.currentFunctionParams.get(expr.name)!
+            this.bytecode.push(OPCODES.STORE_LOCAL)
+            this.bytecode.push(localOffset)
+            // Also load it back onto stack for chaining
+            this.bytecode.push(OPCODES.LOAD_LOCAL)
+            this.bytecode.push(localOffset)
+            break
+          } else if (this.currentFunctionLocals.has(expr.name)) {
+            const localOffset = this.currentFunctionLocals.get(expr.name)!
+            this.bytecode.push(OPCODES.STORE_LOCAL)
+            this.bytecode.push(localOffset)
+            // Also load it back onto stack for chaining
+            this.bytecode.push(OPCODES.LOAD_LOCAL)
+            this.bytecode.push(localOffset)
+            break
+          }
+        }
+        
+        // Global variable
         const varAddress = this.variableMap.get(expr.name)
         if (varAddress === undefined) {
           throw new Error(`Undefined variable: ${expr.name}`)
         }
-        this.generateExpression(expr.value)
         this.bytecode.push(OPCODES.STORE)
         this.bytecode.push(varAddress)
         // Also load it back onto stack for chaining
@@ -391,12 +479,6 @@ export class CodeGenerator {
         this.bytecode[i + 1] = address
       }
     }
-  }
-
-  private patchFunctionCalls(): void {
-    // We need to track which CALL instructions need patching
-    // For now, function addresses are set correctly during generation
-    // This method is a placeholder for future optimization
   }
 }
 

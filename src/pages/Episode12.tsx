@@ -317,9 +317,23 @@ print result3;`)
               </CardHeader>
               {showDisassembly && (
                 <CardContent>
-                  <pre className="bg-muted p-4 rounded-md font-mono text-xs overflow-auto">
-                    {formatDisassembly(disassemble(compilationResult.bytecode))}
-                  </pre>
+                  <div className="border border-border rounded-md overflow-hidden">
+                    <CodeMirror
+                      value={formatDisassembly(disassemble(compilationResult.bytecode).lines, {
+                        showAddresses: true,
+                        showRawBytes: false,
+                        showComments: true
+                      })}
+                      height="300px"
+                      theme={isDark ? oneDark : undefined}
+                      extensions={[javascript()]}
+                      editable={false}
+                      basicSetup={{
+                        lineNumbers: true,
+                        foldGutter: false,
+                      }}
+                    />
+                  </div>
                 </CardContent>
               )}
             </Card>
