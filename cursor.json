@@ -1,0 +1,30 @@
+{
+  "project": "vm-js-series",
+  "description": "Generate 80 sequential YouTube-lesson commits implementing the 'Build a Virtual Machine in JavaScript' curriculum. Each lesson is one commit with code + lesson.md. Follow commit format: feat(lesson): <NN> - <title>",
+  "instructions": {
+    "high_level": "For episodes 1 through 80, generate: (a) lesson markdown suitable for YouTube narration, (b) the minimal code files (HTML/CSS/JS) implementing examples/demos, (c) create a git commit per episode using the commit message format. Place each lesson under scripts/lessons/ and code under src/. Create demos in public/ and update README progressively.",
+    "episode_generation": "Iterate episodes in numerical order. Use the provided Season markdowns as references for each episode's content. Each generated lesson.md must include: title, overview, step-by-step code walkthrough, on-screen demo notes, estimated transcript timestamps (chapter markers). Commit after each episode and append to timeline.json."
+  },
+  "tasks": [
+    {
+      "id": "generate_episodes_1_80",
+      "name": "Generate Episodes 1\u201380",
+      "type": "scripted",
+      "params": {
+        "start": 1,
+        "end": 80,
+        "commit_message_template": "feat(lesson): {num:02d} - {title}",
+        "output_paths": {
+          "lessons": "scripts/lessons/",
+          "code": "src/",
+          "demos": "public/demos/",
+          "timeline": "timeline.json"
+        }
+      }
+    }
+  ],
+  "output": {
+    "readme": "README.md",
+    "timeline": "timeline.json"
+  }
+}
