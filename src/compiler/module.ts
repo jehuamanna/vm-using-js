@@ -101,10 +101,46 @@ export function linkModules(modules: ModuleInfo[]): LinkedModule {
   }
   
   // Second pass: resolve imports, patch function calls, and merge bytecode
+  // IMPORTANT: We need to ensure the entry point (first JMP) goes to the main module
+  // For now, we'll link modules in order, but we should put the "main" module's main code first
+  // or ensure execution flows through all modules
+  
+  // Find the main module (the one that should execute) - typically the last one or one named "main"
+  const mainModuleIndex = modules.findIndex(m => m.name === 'main') >= 0 
+    ? modules.findIndex(m => m.name === 'main')
+    : modules.length - 1
+  
   currentAddress = 0
-  for (const module of modules) {
+  for (let moduleIndex = 0; moduleIndex < modules.length; moduleIndex++) {
+    const module = modules[moduleIndex]
     const moduleStart = currentAddress
     const moduleBytecode = [...module.bytecode]
+    
+    // If this is the first module and it's not the main module, we need to adjust its entry JMP
+    // to skip to the main module's main code instead
+    if (moduleIndex === 0 && moduleIndex !== mainModuleIndex) {
+      // Find where the main module's main code starts
+      // The main module will have its functions first, then a JMP to main code
+      // We need to calculate where that main code will be after linking
+      let mainModuleMainCodeStart = 0
+      for (let i = 0; i <= mainModuleIndex; i++) {
+        if (i < mainModuleIndex) {
+          mainModuleMainCodeStart += modules[i].bytecode.length
+        } else {
+          // For the main module, find where its main code starts
+          // It starts with JMP <label>, then functions, then the label points to main code
+          const mainModuleBytecode = modules[i].bytecode
+          if (mainModuleBytecode.length >= 2 && mainModuleBytecode[0] === OPCODES.JMP) {
+            const jmpTarget = mainModuleBytecode[1]
+            mainModuleMainCodeStart += jmpTarget
+          }
+        }
+      }
+      // Patch the first module's JMP to jump to the main module's main code
+      if (moduleBytecode.length >= 2 && moduleBytecode[0] === OPCODES.JMP) {
+        moduleBytecode[1] = mainModuleMainCodeStart
+      }
+    }
     
     // Resolve imports and patch function call addresses
     for (const imp of module.imports) {
@@ -145,15 +181,27 @@ export function linkModules(modules: ModuleInfo[]): LinkedModule {
     const compileResult = compile(module.source)
     const moduleFunctionMap = compileResult.functionMap || new Map()
     
-    // First, adjust internal function call addresses by module offset
-    // Internal calls are relative to module start, so we add the module's base address
+    // First, adjust JMP addresses and internal function call addresses by module offset
+    // JMP addresses and internal calls are relative to module start, so we add the module's base address
     for (let i = 0; i < moduleBytecode.length - 1; i++) {
-      if (moduleBytecode[i] === OPCODES.CALL) {
+      if (moduleBytecode[i] === OPCODES.JMP) {
+        // Adjust JMP addresses (used to skip to main code)
+        const jmpAddr = moduleBytecode[i + 1]
+        if (jmpAddr >= 0 && jmpAddr < module.bytecode.length) {
+          moduleBytecode[i + 1] = currentAddress + jmpAddr
+        }
+      } else if (moduleBytecode[i] === OPCODES.CALL) {
         const callAddr = moduleBytecode[i + 1]
         // If it's a placeholder (0), it's an imported function - we'll patch it next
         // Otherwise, if it's within the module's bytecode range, it's an internal call
         if (callAddr !== 0 && callAddr < module.bytecode.length) {
           moduleBytecode[i + 1] = currentAddress + callAddr
+        }
+      } else if (moduleBytecode[i] === OPCODES.JMP_IF_ZERO || moduleBytecode[i] === OPCODES.JMP_IF_NEG) {
+        // Adjust conditional jump addresses
+        const jmpAddr = moduleBytecode[i + 1]
+        if (jmpAddr >= 0 && jmpAddr < module.bytecode.length) {
+          moduleBytecode[i + 1] = currentAddress + jmpAddr
         }
       }
     }

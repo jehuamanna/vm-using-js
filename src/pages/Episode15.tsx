@@ -177,10 +177,17 @@ main();`
 
     try {
       vm.reset()
+      console.log('Executing bytecode:', compilationResult.linked.bytecode)
+      console.log('Bytecode length:', compilationResult.linked.bytecode.length)
       const results = vm.execute(compilationResult.linked.bytecode)
-      setOutput(`Output:\n${results.join('\n')}`)
+      console.log('Execution results:', results)
+      if (results.length === 0) {
+        setOutput(`No output produced. Bytecode length: ${compilationResult.linked.bytecode.length}\nBytecode: ${compilationResult.linked.bytecode.slice(0, 50).join(', ')}...`)
+      } else {
+        setOutput(`Output:\n${results.join('\n')}`)
+      }
     } catch (error) {
-      setOutput(`Runtime error:\n${error instanceof Error ? error.message : String(error)}`)
+      setOutput(`Runtime error:\n${error instanceof Error ? error.message : String(error)}\nStack: ${error instanceof Error ? error.stack : ''}`)
     }
   }
 
