@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { compile } from '../compiler'
-import { TinyVM, ExecutionStep, Breakpoint, Watch } from '../core/vm'
+import { TinyVM, ExecutionStep, Watch } from '../core/vm'
 import { disassemble } from '../core/disassembler'
 import { OPCODE_REFERENCE } from '../core/assembler'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Label } from '../components/ui/label'
 import { Input } from '../components/ui/input'
 import { useTheme } from '../components/theme-provider'
 import { 
   Loader2, Code2, Play, Pause, StepForward, SkipForward, 
-  RotateCcw, FileCode, TreePine, 
-  AlertTriangle, Bug, Eye, List, MemoryStick, Circle
+  RotateCcw, FileCode, Bug, Eye, List, MemoryStick, Circle
 } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { javascript } from '@codemirror/lang-javascript'
@@ -255,18 +253,44 @@ print result;`)
     vm.removeWatch(index)
   }
 
-  // Disassembly component
-  const DisassemblyView = ({ bytecode, currentPc, breakpoints, onToggleBreakpoint, isDark }: {
+  // Disassembly component - memoized to prevent unnecessary re-renders
+  const DisassemblyView = React.memo(({ bytecode, currentPc, breakpoints, onToggleBreakpoint }: {
     bytecode: number[]
     currentPc: number
     breakpoints: Set<number>
     onToggleBreakpoint: (address: number) => void
-    isDark: boolean
   }) => {
     const disassembly = useMemo(() => disassemble(bytecode), [bytecode])
     const containerRef = React.useRef<HTMLDivElement>(null)
     const currentLineRef = React.useRef<HTMLDivElement>(null)
     const previousPcRef = React.useRef<number>(-1)
+    const savedScrollPositionRef = React.useRef<number | null>(null)
+    const isScrollingRef = React.useRef<boolean>(false)
+    
+    // Preserve scroll position during re-renders
+    React.useLayoutEffect(() => {
+      const container = containerRef.current
+      if (!container) return
+      
+      // Restore scroll position if we saved one and we're not intentionally scrolling
+      if (savedScrollPositionRef.current !== null && !isScrollingRef.current) {
+        container.scrollTop = savedScrollPositionRef.current
+        savedScrollPositionRef.current = null
+      }
+    })
+    
+    // Save scroll position before PC changes (if PC actually changed)
+    React.useEffect(() => {
+      const container = containerRef.current
+      if (!container) return
+      
+      // If PC changed, save current scroll position
+      if (previousPcRef.current !== currentPc && previousPcRef.current >= 0) {
+        savedScrollPositionRef.current = container.scrollTop
+      }
+      
+      previousPcRef.current = currentPc
+    }, [currentPc])
     
     // Smooth scroll to current instruction relative to current viewport
     React.useEffect(() => {
@@ -278,8 +302,11 @@ print result;`)
         requestAnimationFrame(() => {
           if (!container || !targetLine) return
           
-          // Get current scroll position BEFORE any calculations
-          const currentScrollTop = container.scrollTop
+          // Restore saved scroll position if available
+          if (savedScrollPositionRef.current !== null) {
+            container.scrollTop = savedScrollPositionRef.current
+            savedScrollPositionRef.current = null
+          }
           
           // Get container and line positions relative to viewport
           const containerRect = container.getBoundingClientRect()
@@ -293,6 +320,8 @@ print result;`)
           
           // Only scroll if line is not visible
           if (!isVisible) {
+            isScrollingRef.current = true
+            
             // Calculate the line's position relative to the container's scrollable content
             // Use getBoundingClientRect to get current viewport positions
             const lineTopInViewport = lineRect.top
@@ -310,24 +339,31 @@ print result;`)
             const scrollDelta = lineRelativeToContainer - desiredRelativePosition
             
             // Calculate new scroll position
-            const newScrollTop = currentScrollTop + scrollDelta
+            const newScrollTop = container.scrollTop + scrollDelta
             
             // Clamp to valid scroll range
             const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
             const clampedScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll))
             
             // Only scroll if there's a meaningful change
-            if (Math.abs(clampedScrollTop - currentScrollTop) > 1) {
+            if (Math.abs(clampedScrollTop - container.scrollTop) > 1) {
               // Smooth scroll from current position to target
               container.scrollTo({
                 top: clampedScrollTop,
                 behavior: 'smooth'
               })
+              
+              // Reset scrolling flag after animation completes
+              setTimeout(() => {
+                isScrollingRef.current = false
+              }, 300) // Approximate animation duration
+            } else {
+              isScrollingRef.current = false
             }
+          } else {
+            isScrollingRef.current = false
           }
         })
-        
-        previousPcRef.current = currentPc
       }
     }, [currentPc])
     
@@ -388,7 +424,7 @@ print result;`)
         })}
       </div>
     )
-  }
+  })
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
@@ -567,7 +603,6 @@ print result;`)
                     currentPc={isDebugging && currentStep ? currentStep.pc : -1}
                     breakpoints={breakpoints}
                     onToggleBreakpoint={toggleBreakpoint}
-                    isDark={isDark}
                   />
                 </div>
               </CardContent>
