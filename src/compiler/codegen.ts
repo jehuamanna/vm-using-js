@@ -119,7 +119,13 @@ export class CodeGenerator {
       }
       
       // Add return if not already present
-      // (Check if last statement is return - for now, assume explicit return)
+      // Check if last statement is a return statement
+      const lastStmt = func.body.length > 0 ? func.body[func.body.length - 1] : null
+      if (!lastStmt || lastStmt.type !== 'ReturnStatement') {
+        // No explicit return - push 0 and return
+        this.bytecode.push(OPCODES.PUSH)
+        this.bytecode.push(0)
+      }
       this.bytecode.push(OPCODES.RET)
       
       // Clear function context
@@ -161,6 +167,13 @@ export class CodeGenerator {
       case 'ExpressionStatement':
         this.generateExpression(stmt.expression)
         // Pop result if expression leaves value on stack
+        // But only if there's actually a value - check if it's a function call or other expression
+        // For function calls, they always leave a value, so we need to discard it
+        // For other expressions, we also need to discard the result
+        // Use POP if available, or STORE to a safe address
+        // Since we don't have POP, we'll use STORE to address 255 (unused)
+        // But we need to ensure the stack has a value first
+        // Actually, all expressions leave a value, so this should be safe
         this.bytecode.push(OPCODES.STORE)
         this.bytecode.push(255) // Discard to unused address
         break
