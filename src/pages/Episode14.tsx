@@ -187,17 +187,19 @@ print result;`)
     }
   }
 
-  const toggleBreakpoint = (address: number) => {
-    const newBreakpoints = new Set(breakpoints)
-    if (newBreakpoints.has(address)) {
-      newBreakpoints.delete(address)
-      vm.removeBreakpoint(address)
-    } else {
-      newBreakpoints.add(address)
-      vm.setBreakpoint(address, true)
-    }
-    setBreakpoints(newBreakpoints)
-  }
+  const toggleBreakpoint = useCallback((address: number) => {
+    setBreakpoints(prevBreakpoints => {
+      const newBreakpoints = new Set(prevBreakpoints)
+      if (newBreakpoints.has(address)) {
+        newBreakpoints.delete(address)
+        vm.removeBreakpoint(address)
+      } else {
+        newBreakpoints.add(address)
+        vm.setBreakpoint(address, true)
+      }
+      return newBreakpoints
+    })
+  }, [vm])
 
   const addWatch = () => {
     if (!watchInput.trim()) return
@@ -253,6 +255,15 @@ print result;`)
     vm.removeWatch(index)
   }
 
+  // Helper function to compare Sets by value
+  const areSetsEqual = (set1: Set<number>, set2: Set<number>): boolean => {
+    if (set1.size !== set2.size) return false
+    for (const item of set1) {
+      if (!set2.has(item)) return false
+    }
+    return true
+  }
+
   // Disassembly component - memoized to prevent unnecessary re-renders
   const DisassemblyView = React.memo(({ bytecode, currentPc, breakpoints, onToggleBreakpoint }: {
     bytecode: number[]
@@ -266,29 +277,33 @@ print result;`)
     const previousPcRef = React.useRef<number>(-1)
     const savedScrollPositionRef = React.useRef<number | null>(null)
     const isScrollingRef = React.useRef<boolean>(false)
+    const shouldPreserveScrollRef = React.useRef<boolean>(false)
     
-    // Preserve scroll position during re-renders
+    // Wrapper for onToggleBreakpoint that saves scroll position before state update
+    const handleToggleBreakpoint = React.useCallback((address: number) => {
+      // Save scroll position before toggling breakpoint
+      if (containerRef.current) {
+        savedScrollPositionRef.current = containerRef.current.scrollTop
+        shouldPreserveScrollRef.current = true
+      }
+      onToggleBreakpoint(address)
+    }, [onToggleBreakpoint])
+    
+    // Restore scroll position after re-render (if we saved one and not intentionally scrolling)
     React.useLayoutEffect(() => {
       const container = containerRef.current
       if (!container) return
       
       // Restore scroll position if we saved one and we're not intentionally scrolling
-      if (savedScrollPositionRef.current !== null && !isScrollingRef.current) {
+      if (shouldPreserveScrollRef.current && savedScrollPositionRef.current !== null && !isScrollingRef.current) {
         container.scrollTop = savedScrollPositionRef.current
         savedScrollPositionRef.current = null
+        shouldPreserveScrollRef.current = false
       }
     })
     
-    // Save scroll position before PC changes (if PC actually changed)
+    // Track PC changes for scroll-to-current-line logic
     React.useEffect(() => {
-      const container = containerRef.current
-      if (!container) return
-      
-      // If PC changed, save current scroll position
-      if (previousPcRef.current !== currentPc && previousPcRef.current >= 0) {
-        savedScrollPositionRef.current = container.scrollTop
-      }
-      
       previousPcRef.current = currentPc
     }, [currentPc])
     
@@ -395,7 +410,7 @@ print result;`)
                     ? 'bg-destructive/5' 
                     : ''
               }`}
-              onClick={() => onToggleBreakpoint(line.address)}
+              onClick={() => handleToggleBreakpoint(line.address)}
             >
               <div className="w-12 flex justify-center">
                 {hasBreakpoint && (
@@ -424,6 +439,18 @@ print result;`)
         })}
       </div>
     )
+  }, (prevProps, nextProps) => {
+    // Custom comparison: return true if props are equal (skip re-render), false if different (re-render)
+    // Compare bytecode
+    if (prevProps.bytecode.length !== nextProps.bytecode.length) return false
+    if (prevProps.bytecode.some((val, idx) => val !== nextProps.bytecode[idx])) return false
+    // Compare currentPc
+    if (prevProps.currentPc !== nextProps.currentPc) return false
+    // Compare breakpoints by value (not reference)
+    if (!areSetsEqual(prevProps.breakpoints, nextProps.breakpoints)) return false
+    // onToggleBreakpoint is stable (useCallback), so we can skip comparing it
+    // All props are equal, skip re-render
+    return true
   })
 
   return (
