@@ -418,8 +418,10 @@ export class CodeGenerator {
           this.bytecode.push(OPCODES.PUSH)
           this.bytecode.push(4 + i) // Offset: 4 (length) + i
           this.bytecode.push(OPCODES.ADD) // Calculate address
+          // Stack: [address]
           this.bytecode.push(OPCODES.PUSH)
           this.bytecode.push(charCode)
+          // Stack: [address, charCode] - correct order for STORE8_STACK
           this.bytecode.push(OPCODES.STORE8_STACK) // Store character
         }
         
@@ -429,8 +431,10 @@ export class CodeGenerator {
         this.bytecode.push(OPCODES.PUSH)
         this.bytecode.push(4 + strLength) // Offset for null terminator
         this.bytecode.push(OPCODES.ADD)
+        // Stack: [address]
         this.bytecode.push(OPCODES.PUSH)
         this.bytecode.push(0) // Null terminator
+        // Stack: [address, 0] - correct order for STORE8_STACK
         this.bytecode.push(OPCODES.STORE8_STACK)
         
         // Leave heap address on stack
