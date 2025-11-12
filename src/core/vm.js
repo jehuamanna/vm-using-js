@@ -1,5 +1,5 @@
 /**
- * Episode 1: Introduction & Tiny VM
+ * Episode 1-2: Tiny VM with Control Flow
  * A minimal stack-based virtual machine implementation
  */
 
@@ -10,6 +10,9 @@ const OPCODES = {
   SUB: 0x03,
   MUL: 0x04,
   PRINT: 0x05,
+  JMP: 0x06,        // Episode 2: Unconditional jump
+  JMP_IF_ZERO: 0x07, // Episode 2: Jump if top of stack is zero
+  JMP_IF_NEG: 0x08,  // Episode 2: Jump if top of stack is negative
   HALT: 0x00
 };
 
@@ -83,6 +86,46 @@ class TinyVM {
           this.output.push(val);
           console.log(val);
           this.pc++;
+          break;
+
+        case OPCODES.JMP:
+          // Unconditional jump: read address and set PC
+          this.pc++;
+          const jumpAddr = bytecode[this.pc];
+          if (jumpAddr < 0 || jumpAddr >= bytecode.length) {
+            throw new Error(`Invalid jump address: ${jumpAddr}`);
+          }
+          this.pc = jumpAddr;
+          break;
+
+        case OPCODES.JMP_IF_ZERO:
+          // Jump if top of stack is zero
+          this.pc++;
+          const zeroAddr = bytecode[this.pc];
+          const topValue = this.pop();
+          if (topValue === 0) {
+            if (zeroAddr < 0 || zeroAddr >= bytecode.length) {
+              throw new Error(`Invalid jump address: ${zeroAddr}`);
+            }
+            this.pc = zeroAddr;
+          } else {
+            this.pc++;
+          }
+          break;
+
+        case OPCODES.JMP_IF_NEG:
+          // Jump if top of stack is negative
+          this.pc++;
+          const negAddr = bytecode[this.pc];
+          const checkValue = this.pop();
+          if (checkValue < 0) {
+            if (negAddr < 0 || negAddr >= bytecode.length) {
+              throw new Error(`Invalid jump address: ${negAddr}`);
+            }
+            this.pc = negAddr;
+          } else {
+            this.pc++;
+          }
           break;
 
         case OPCODES.HALT:

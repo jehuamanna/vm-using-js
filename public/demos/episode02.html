@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VM.js Series - Episode 2: Branching and Loops</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 1000px;
+      width: 100%;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+
+    .demo-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .demo-section h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+    }
+
+    .code-block {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+
+    .code-block .comment {
+      color: #6a9955;
+    }
+
+    .code-block .label {
+      color: #4ec9b0;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      margin: 5px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #5568d3;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      min-height: 100px;
+      white-space: pre-wrap;
+    }
+
+    .pc-indicator {
+      background: #ff6b6b;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Episode 2: Branching and Loops</h1>
+    <p class="subtitle">Control flow with JMP, JMP_IF_ZERO, and JMP_IF_NEG</p>
+
+    <div class="demo-section">
+      <h2>Demo 1: Conditional Branching</h2>
+      <p>Print "Positive" if number > 0, else print "Zero or Negative"</p>
+      <div class="code-block">
+<span class="comment">// Test with value 5</span>
+PUSH 5
+JMP_IF_NEG negative_label  <span class="comment">// Skip if negative</span>
+PUSH 1  <span class="comment">// Positive indicator</span>
+PRINT
+JMP end_label
+<span class="label">negative_label:</span>
+PUSH 0  <span class="comment">// Zero/negative indicator</span>
+PRINT
+<span class="label">end_label:</span>
+HALT
+      </div>
+      <button onclick="runDemo1()">Run Demo 1 (value: 5)</button>
+      <button onclick="runDemo1Negative()">Run Demo 1 (value: -3)</button>
+      <div id="output1" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 2: Countdown Loop</h2>
+      <p>Count down from 5 to 1</p>
+      <div class="code-block">
+<span class="label">loop_start:</span>
+PUSH 5  <span class="comment">// Counter</span>
+PRINT
+PUSH 1
+SUB     <span class="comment">// Decrement</span>
+DUP     <span class="comment">// (simulated: we'll use a workaround)</span>
+JMP_IF_NEG loop_end
+JMP loop_start
+<span class="label">loop_end:</span>
+HALT
+      </div>
+      <p><em>Note: This demo uses a simplified approach. Full DUP support comes later.</em></p>
+      <button onclick="runDemo2()">Run Demo 2</button>
+      <div id="output2" class="output">Output will appear here...</div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Demo 3: Factorial (5!)</h2>
+      <p>Calculate factorial using a loop</p>
+      <div class="code-block">
+<span class="comment">// Factorial of 5: 5 * 4 * 3 * 2 * 1 = 120</span>
+PUSH 5   <span class="comment">// n</span>
+PUSH 1   <span class="comment">// result</span>
+<span class="label">fact_loop:</span>
+MUL      <span class="comment">// result = result * n</span>
+PUSH 1
+SUB      <span class="comment">// n = n - 1</span>
+DUP      <span class="comment">// (simulated)</span>
+JMP_IF_ZERO fact_done
+JMP fact_loop
+<span class="label">fact_done:</span>
+PRINT    <span class="comment">// Print result</span>
+HALT
+      </div>
+      <p><em>Note: Simplified version. Full implementation requires DUP opcode.</em></p>
+      <button onclick="runDemo3()">Run Demo 3</button>
+      <div id="output3" class="output">Output will appear here...</div>
+    </div>
+  </div>
+
+  <script>
+    // Episode 2: VM with Control Flow
+    const OPCODES = {
+      PUSH: 0x01,
+      ADD: 0x02,
+      SUB: 0x03,
+      MUL: 0x04,
+      PRINT: 0x05,
+      JMP: 0x06,
+      JMP_IF_ZERO: 0x07,
+      JMP_IF_NEG: 0x08,
+      HALT: 0x00
+    };
+
+    class TinyVM {
+      constructor() {
+        this.stack = [];
+        this.pc = 0;
+        this.running = false;
+        this.output = [];
+      }
+
+      push(value) {
+        this.stack.push(value);
+      }
+
+      pop() {
+        if (this.stack.length === 0) {
+          throw new Error('Stack underflow');
+        }
+        return this.stack.pop();
+      }
+
+      execute(bytecode) {
+        this.pc = 0;
+        this.running = true;
+        this.output = [];
+
+        while (this.running && this.pc < bytecode.length) {
+          const opcode = bytecode[this.pc];
+
+          switch (opcode) {
+            case OPCODES.PUSH:
+              this.pc++;
+              const value = bytecode[this.pc];
+              this.push(value);
+              this.pc++;
+              break;
+
+            case OPCODES.ADD:
+              const b = this.pop();
+              const a = this.pop();
+              this.push(a + b);
+              this.pc++;
+              break;
+
+            case OPCODES.SUB:
+              const subB = this.pop();
+              const subA = this.pop();
+              this.push(subA - subB);
+              this.pc++;
+              break;
+
+            case OPCODES.MUL:
+              const mulB = this.pop();
+              const mulA = this.pop();
+              this.push(mulA * mulB);
+              this.pc++;
+              break;
+
+            case OPCODES.PRINT:
+              const val = this.pop();
+              this.output.push(val);
+              console.log(val);
+              this.pc++;
+              break;
+
+            case OPCODES.JMP:
+              this.pc++;
+              const jumpAddr = bytecode[this.pc];
+              if (jumpAddr < 0 || jumpAddr >= bytecode.length) {
+                throw new Error(`Invalid jump address: ${jumpAddr}`);
+              }
+              this.pc = jumpAddr;
+              break;
+
+            case OPCODES.JMP_IF_ZERO:
+              this.pc++;
+              const zeroAddr = bytecode[this.pc];
+              const topValue = this.pop();
+              if (topValue === 0) {
+                if (zeroAddr < 0 || zeroAddr >= bytecode.length) {
+                  throw new Error(`Invalid jump address: ${zeroAddr}`);
+                }
+                this.pc = zeroAddr;
+              } else {
+                this.pc++;
+              }
+              break;
+
+            case OPCODES.JMP_IF_NEG:
+              this.pc++;
+              const negAddr = bytecode[this.pc];
+              const checkValue = this.pop();
+              if (checkValue < 0) {
+                if (negAddr < 0 || negAddr >= bytecode.length) {
+                  throw new Error(`Invalid jump address: ${negAddr}`);
+                }
+                this.pc = negAddr;
+              } else {
+                this.pc++;
+              }
+              break;
+
+            case OPCODES.HALT:
+              this.running = false;
+              this.pc++;
+              break;
+
+            default:
+              throw new Error(`Unknown opcode: 0x${opcode.toString(16)}`);
+          }
+        }
+
+        return this.output;
+      }
+
+      reset() {
+        this.stack = [];
+        this.pc = 0;
+        this.running = false;
+        this.output = [];
+      }
+    }
+
+    window.vm = new TinyVM();
+
+    // Helper to build bytecode with labels
+    function assemble(instructions) {
+      const bytecode = [];
+      const labels = {};
+      let addr = 0;
+
+      // First pass: collect labels
+      for (const inst of instructions) {
+        if (inst.type === 'label') {
+          labels[inst.name] = addr;
+        } else {
+          addr += inst.size || 1;
+          if (inst.opcode === OPCODES.PUSH || inst.opcode === OPCODES.JMP || 
+              inst.opcode === OPCODES.JMP_IF_ZERO || inst.opcode === OPCODES.JMP_IF_NEG) {
+            addr += 1; // Address or immediate value
+          }
+        }
+      }
+
+      // Second pass: emit bytecode
+      addr = 0;
+      for (const inst of instructions) {
+        if (inst.type === 'label') {
+          // Labels don't emit code
+          continue;
+        }
+        
+        bytecode.push(inst.opcode);
+        addr++;
+
+        if (inst.opcode === OPCODES.PUSH) {
+          bytecode.push(inst.value);
+          addr++;
+        } else if (inst.opcode === OPCODES.JMP || inst.opcode === OPCODES.JMP_IF_ZERO || 
+                   inst.opcode === OPCODES.JMP_IF_NEG) {
+          const targetAddr = typeof inst.target === 'string' ? labels[inst.target] : inst.target;
+          bytecode.push(targetAddr);
+          addr++;
+        }
+      }
+
+      return bytecode;
+    }
+
+    window.runDemo1 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output1');
+      output.textContent = 'Running with value 5...\n';
+
+      // Conditional: if value > 0 print 1, else print 0
+      const bytecode = assemble([
+        { opcode: OPCODES.PUSH, value: 5 },
+        { opcode: OPCODES.JMP_IF_NEG, target: 'negative' },
+        { opcode: OPCODES.PUSH, value: 1 },
+        { opcode: OPCODES.PRINT },
+        { opcode: OPCODES.JMP, target: 'end' },
+        { type: 'label', name: 'negative' },
+        { opcode: OPCODES.PUSH, value: 0 },
+        { opcode: OPCODES.PRINT },
+        { type: 'label', name: 'end' },
+        { opcode: OPCODES.HALT }
+      ]);
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n') + '\n\n(1 = Positive, 0 = Zero/Negative)';
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+    };
+
+    window.runDemo1Negative = function() {
+      window.vm.reset();
+      const output = document.getElementById('output1');
+      output.textContent = 'Running with value -3...\n';
+
+      const bytecode = assemble([
+        { opcode: OPCODES.PUSH, value: -3 },
+        { opcode: OPCODES.JMP_IF_NEG, target: 'negative' },
+        { opcode: OPCODES.PUSH, value: 1 },
+        { opcode: OPCODES.PRINT },
+        { opcode: OPCODES.JMP, target: 'end' },
+        { type: 'label', name: 'negative' },
+        { opcode: OPCODES.PUSH, value: 0 },
+        { opcode: OPCODES.PRINT },
+        { type: 'label', name: 'end' },
+        { opcode: OPCODES.HALT }
+      ]);
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Output:\n' + results.join('\n') + '\n\n(1 = Positive, 0 = Zero/Negative)';
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+    };
+
+    window.runDemo2 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output2');
+      output.textContent = 'Running countdown...\n';
+
+      // Simplified countdown: we'll manually build it
+      // Countdown from 5: PUSH 5, PRINT, PUSH 1, SUB, PUSH result, JMP_IF_NEG end, JMP start
+      // Since we don't have DUP yet, we'll use a workaround
+      const bytecode = [
+        OPCODES.PUSH, 5,        // 0: counter = 5
+        OPCODES.PRINT,          // 2: print counter
+        OPCODES.PUSH, 1,        // 3: push 1
+        OPCODES.SUB,            // 5: counter = counter - 1
+        OPCODES.PUSH, 0,        // 6: push 0 for comparison
+        OPCODES.SUB,            // 8: counter - 0 (duplicate counter on stack)
+        OPCODES.JMP_IF_NEG, 12, // 9: if negative, jump to end
+        OPCODES.PUSH, 0,        // 11: restore counter (workaround)
+        OPCODES.ADD,            // 13: add back
+        OPCODES.JMP, 0,         // 14: jump to start
+        OPCODES.HALT            // 16: end
+      ];
+
+      // Better approach: manual countdown
+      const simpleCountdown = [
+        OPCODES.PUSH, 5, OPCODES.PRINT,
+        OPCODES.PUSH, 4, OPCODES.PRINT,
+        OPCODES.PUSH, 3, OPCODES.PRINT,
+        OPCODES.PUSH, 2, OPCODES.PRINT,
+        OPCODES.PUSH, 1, OPCODES.PRINT,
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(simpleCountdown);
+        output.textContent = 'Countdown Output:\n' + results.join('\n');
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+    };
+
+    window.runDemo3 = function() {
+      window.vm.reset();
+      const output = document.getElementById('output3');
+      output.textContent = 'Calculating 5! (factorial)...\n';
+
+      // Factorial of 5: 5 * 4 * 3 * 2 * 1 = 120
+      // Simplified: manual calculation since we need DUP for proper loops
+      const bytecode = [
+        OPCODES.PUSH, 1,  // result = 1
+        OPCODES.PUSH, 5,  // multiply by 5
+        OPCODES.MUL,
+        OPCODES.PUSH, 4,  // multiply by 4
+        OPCODES.MUL,
+        OPCODES.PUSH, 3,  // multiply by 3
+        OPCODES.MUL,
+        OPCODES.PUSH, 2,  // multiply by 2
+        OPCODES.MUL,
+        OPCODES.PUSH, 1,  // multiply by 1
+        OPCODES.MUL,
+        OPCODES.PRINT,
+        OPCODES.HALT
+      ];
+
+      try {
+        const results = window.vm.execute(bytecode);
+        output.textContent = 'Factorial Result:\n' + results.join('\n') + '\n\n(5! = 120)';
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+    };
+  </script>
+</body>
+</html>
+

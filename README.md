@@ -20,6 +20,7 @@ npm run dev
 
 ### Season 1 — Foundations (Episodes 1–26)
 - ✅ **Episode 1**: Introduction & Tiny VM — Basic stack-based VM with PUSH, ADD, SUB, MUL, PRINT
+- ✅ **Episode 2**: Branching and Loops — Control flow with JMP, JMP_IF_ZERO, JMP_IF_NEG
 
 [More episodes coming soon...]
 
