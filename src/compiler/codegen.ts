@@ -137,12 +137,15 @@ export class CodeGenerator {
 
     // Generate main code
     const mainCodeStart = this.bytecode.length
-    console.log(`[CODEGEN] Patching main code jump: label=${mainCodeStartLabel}, address=${mainCodeStart}, bytecode length=${this.bytecode.length}`)
+    console.log(`[CODEGEN] Main code starts at: ${mainCodeStart}, label=${mainCodeStartLabel}, current bytecode length=${this.bytecode.length}`)
+    console.log(`[CODEGEN] Bytecode before patching: [${this.bytecode.slice(0, 5).join(', ')}...]`)
     this.patchJump(mainCodeStartLabel, mainCodeStart)
-    console.log(`[CODEGEN] After patching, bytecode[1]=${this.bytecode[1]}`)
+    console.log(`[CODEGEN] Bytecode after patching: [${this.bytecode.slice(0, 5).join(', ')}...]`)
+    console.log(`[CODEGEN] JMP target at bytecode[1] is now: ${this.bytecode[1]}`)
 
     for (const stmt of ast.statements) {
       if (stmt.type !== 'FunctionDefinition' && stmt.type !== 'ExportStatement' && stmt.type !== 'ImportStatement') {
+        console.log(`[CODEGEN] Generating statement: ${stmt.type}`)
         this.generateStatement(stmt)
         
         // If this is an exported variable, add to export map
