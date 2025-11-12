@@ -394,7 +394,20 @@ export class CodeGenerator {
         this.bytecode.push(strLength)
         this.bytecode.push(OPCODES.LOAD)
         this.bytecode.push(tempAddr)
-        this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit (address on stack)
+        // Stack: [strLength, address]
+        // STORE32_STACK pops: value first, then address
+        // Swap to get [address, value]
+        const swapStrLen = 246
+        this.bytecode.push(OPCODES.STORE)
+        this.bytecode.push(swapStrLen) // Store address
+        this.bytecode.push(OPCODES.STORE)
+        this.bytecode.push(swapStrLen + 1) // Store length
+        this.bytecode.push(OPCODES.LOAD)
+        this.bytecode.push(swapStrLen) // Load address
+        this.bytecode.push(OPCODES.LOAD)
+        this.bytecode.push(swapStrLen + 1) // Load length
+        // Stack: [address, length] - correct order
+        this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit
         
         // Store each character as 8-bit value
         for (let i = 0; i < strLength; i++) {
@@ -483,14 +496,25 @@ export class CodeGenerator {
             break
           case '<':
             // left < right: compute right - left, if positive then true
-            // Store left temporarily
+            // Stack: [left, right] with right on top
+            // SUB pops: right (top) first, then left, computes left - right (wrong!)
+            // We need right - left, so swap them
+            // Store right temporarily
             const tempAddr2 = 251
             this.bytecode.push(OPCODES.STORE)
-            this.bytecode.push(tempAddr2)
-            // Stack now has: right
-            // Load left and compute: right - left
+            this.bytecode.push(tempAddr2) // Store right
+            // Stack: [left]
+            // Store left temporarily
+            this.bytecode.push(OPCODES.STORE)
+            this.bytecode.push(tempAddr2 + 1) // Store left
+            // Stack: []
+            // Load right, then left
             this.bytecode.push(OPCODES.LOAD)
-            this.bytecode.push(tempAddr2)
+            this.bytecode.push(tempAddr2) // Load right
+            this.bytecode.push(OPCODES.LOAD)
+            this.bytecode.push(tempAddr2 + 1) // Load left
+            // Stack: [right, left] with left on top
+            // SUB: pops left (top), then right, computes right - left ✓
             this.bytecode.push(OPCODES.SUB)
             // Result: positive if right > left (i.e., left < right)
             // For if/while, we'll use JMP_IF_NEG to check if result is negative
@@ -694,7 +718,20 @@ export class CodeGenerator {
     this.bytecode.push(arrayLength)
     this.bytecode.push(OPCODES.LOAD)
     this.bytecode.push(tempAddr)
-    this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit (address on stack)
+    // Stack: [arrayLength, address]
+    // STORE32_STACK pops: value first, then address
+    // So we need: [address, value] on stack - swap them
+    const swapTempLen = 247
+    this.bytecode.push(OPCODES.STORE)
+    this.bytecode.push(swapTempLen) // Store address
+    this.bytecode.push(OPCODES.STORE)
+    this.bytecode.push(swapTempLen + 1) // Store length
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(swapTempLen) // Load address
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(swapTempLen + 1) // Load length
+    // Stack: [address, length] - correct order
+    this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit
     
     // Store each element as 32-bit value
     for (let i = 0; i < elements.length; i++) {
@@ -710,7 +747,19 @@ export class CodeGenerator {
       this.bytecode.push(OPCODES.ADD) // base + offset
       
       // Stack: [elementValue, address]
-      // STORE32_STACK expects: [value, address] and pops both
+      // STORE32_STACK pops: value first, then address
+      // So we need: [address, value] on stack
+      // Swap them: store address temporarily, then push it back
+      const swapTemp = 248
+      this.bytecode.push(OPCODES.STORE)
+      this.bytecode.push(swapTemp) // Store address
+      this.bytecode.push(OPCODES.STORE)
+      this.bytecode.push(swapTemp + 1) // Store value
+      this.bytecode.push(OPCODES.LOAD)
+      this.bytecode.push(swapTemp) // Load address
+      this.bytecode.push(OPCODES.LOAD)
+      this.bytecode.push(swapTemp + 1) // Load value
+      // Stack: [address, value] - correct order for STORE32_STACK
       this.bytecode.push(OPCODES.STORE32_STACK)
     }
     
