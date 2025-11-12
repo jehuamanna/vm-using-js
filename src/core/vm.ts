@@ -190,7 +190,16 @@ export class TinyVM {
     this.debugMode = debugMode;
     this.currentBytecode = bytecode;
 
+    // Safety: prevent infinite loops
+    let instructionCount = 0;
+    const maxInstructions = 100000; // Safety limit
+
     while (this.running && this.pc < bytecode.length) {
+      instructionCount++;
+      if (instructionCount > maxInstructions) {
+        throw new Error(`Execution exceeded maximum instruction limit (${maxInstructions}). Possible infinite loop at PC=${this.pc}`);
+      }
+      
       const opcode = bytecode[this.pc];
       
       // Episode 14: Check for breakpoints (before executing)

@@ -79,12 +79,24 @@ export function Episode16() {
     try {
       // Enable debug mode temporarily to see heap operations
       vm.debugMode = true
+      console.log('Starting execution with bytecode length:', bytecode.length)
+      console.log('Bytecode:', bytecode.slice(0, 50).join(', '), '...')
+      
       const result = vm.execute(bytecode, true)
       vm.debugMode = false
-      setOutput(result)
+      
+      console.log('Execution completed. Output:', result)
+      console.log('Output length:', result.length)
+      
+      if (result.length === 0) {
+        setOutput(['(No output produced)'])
+      } else {
+        setOutput(result)
+      }
       setRunning(false)
     } catch (err) {
       vm.debugMode = false
+      console.error('Execution error:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
       setRunning(false)
     }
