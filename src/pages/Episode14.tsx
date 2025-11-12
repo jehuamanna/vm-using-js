@@ -350,21 +350,27 @@ print result;`)
             const lineHeight = lineRect.height
             const desiredRelativePosition = (containerHeight / 2) - (lineHeight / 2)
             
-            // Calculate the scroll delta needed
+            // Calculate the scroll delta needed (relative movement)
             const scrollDelta = lineRelativeToContainer - desiredRelativePosition
             
-            // Calculate new scroll position
-            const newScrollTop = container.scrollTop + scrollDelta
-            
-            // Clamp to valid scroll range
-            const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
-            const clampedScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll))
-            
             // Only scroll if there's a meaningful change
-            if (Math.abs(clampedScrollTop - container.scrollTop) > 1) {
-              // Smooth scroll from current position to target
-              container.scrollTo({
-                top: clampedScrollTop,
+            if (Math.abs(scrollDelta) > 1) {
+              // Get current scroll position before scrolling
+              const currentScrollTop = container.scrollTop
+              const maxScroll = Math.max(0, container.scrollHeight - containerHeight)
+              
+              // Clamp the delta to stay within bounds
+              const clampedDelta = Math.max(
+                -currentScrollTop, // Can't scroll above top
+                Math.min(
+                  scrollDelta,
+                  maxScroll - currentScrollTop // Can't scroll below bottom
+                )
+              )
+              
+              // Use relative scrolling (scrollBy) instead of absolute (scrollTo)
+              container.scrollBy({
+                top: clampedDelta,
                 behavior: 'smooth'
               })
               
