@@ -63,14 +63,14 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 dark:from-purple-900 dark:via-purple-800 dark:to-purple-900 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="container mx-auto max-w-6xl">
         <div className="flex justify-between items-start mb-8">
           <div className="text-center flex-1">
-            <h1 className="text-4xl font-bold text-white dark:text-purple-100 mb-2">
+            <h1 className="text-4xl font-bold text-foreground mb-2">
               🎬 Episode 1: Introduction & Tiny VM
             </h1>
-            <p className="text-purple-100 dark:text-purple-200 text-lg">
+            <p className="text-muted-foreground text-lg">
               A minimal stack-based virtual machine in JavaScript
             </p>
           </div>
