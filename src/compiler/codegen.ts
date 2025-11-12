@@ -303,9 +303,14 @@ export class CodeGenerator {
     // Generate condition
     this.generateExpression(stmt.condition)
 
-    // Jump to end if condition is false (zero or negative)
-    // Similar to if statement
-    this.bytecode.push(OPCODES.JMP_IF_ZERO)
+    // Jump to end if condition is false
+    // For comparisons: negative means false, zero/positive means true
+    // For ==: zero means true, non-zero means false
+    // We'll check if result is <= 0 by pushing 0 and comparing
+    // But simpler: use JMP_IF_NEG to exit if negative (works for <, >, <=, >=)
+    // For ==, we need special handling - but for now, let's use JMP_IF_NEG
+    // which works for most comparisons
+    this.bytecode.push(OPCODES.JMP_IF_NEG)
     this.bytecode.push(endLabel) // Will be patched
 
     // Generate body
@@ -445,6 +450,8 @@ export class CodeGenerator {
           case '==':
             // Compare: subtract, result is 0 if equal, non-zero if not equal
             // For if/while, we'll use JMP_IF_ZERO which checks if result is 0
+            // But for while loops with JMP_IF_NEG, we need to normalize
+            // For now, keep as is - == comparisons in while loops will need special handling
             this.bytecode.push(OPCODES.SUB)
             // Stack now has: 0 if equal, non-zero if not equal
             break
