@@ -744,26 +744,28 @@ export class CodeGenerator {
       
       // Calculate address: base + 4 (length) + i * 4
       // Stack: [elementValue]
+      // IMPORTANT: Always reload base address from tempAddr to ensure it's correct
+      // (previous iterations may have left values on stack)
       this.bytecode.push(OPCODES.LOAD)
-      this.bytecode.push(tempAddr) // Load base address
+      this.bytecode.push(tempAddr) // Load base address (always from tempAddr)
       this.bytecode.push(OPCODES.PUSH)
-      this.bytecode.push(4 + (i * 4)) // Offset
+      this.bytecode.push(4 + (i * 4)) // Offset: 4 (length) + i * 4
       this.bytecode.push(OPCODES.ADD) // base + offset
       
-      // Stack: [elementValue, address]
+      // Stack: [elementValue, elementAddress]
       // STORE32_STACK pops: value first, then address
       // So we need: [address, value] on stack
-      // Swap them: store address temporarily, then push it back
+      // Swap them: store both temporarily, then reload in correct order
       const swapTemp = 248
       this.bytecode.push(OPCODES.STORE)
-      this.bytecode.push(swapTemp) // Store address
+      this.bytecode.push(swapTemp) // Store elementAddress (top of stack)
       this.bytecode.push(OPCODES.STORE)
-      this.bytecode.push(swapTemp + 1) // Store value
+      this.bytecode.push(swapTemp + 1) // Store elementValue
       this.bytecode.push(OPCODES.LOAD)
-      this.bytecode.push(swapTemp) // Load address
+      this.bytecode.push(swapTemp) // Load elementAddress
       this.bytecode.push(OPCODES.LOAD)
-      this.bytecode.push(swapTemp + 1) // Load value
-      // Stack: [address, value] - correct order for STORE32_STACK
+      this.bytecode.push(swapTemp + 1) // Load elementValue
+      // Stack: [elementAddress, elementValue] - correct order for STORE32_STACK
       this.bytecode.push(OPCODES.STORE32_STACK)
     }
     
