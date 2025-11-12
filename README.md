@@ -5,16 +5,14 @@ It is structured so each episode is committed individually (one commit per lesso
 
 ## 🚀 Quick Start
 
-### Browser-only (no server needed):
-1. Open `public/index.html` in your browser.
-2. Click the demo buttons to see the VM in action!
-
-### With local server:
+### Browser (requires local server):
 ```bash
 npm install
 npm run dev
 # Then open http://localhost:8000/public/index.html
 ```
+
+**Note:** ES modules require a local server to work. The `npm run dev` command starts a simple HTTP server.
 
 ## 📚 Episodes
 

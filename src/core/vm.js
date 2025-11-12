@@ -152,8 +152,11 @@ class TinyVM {
   }
 }
 
-// Export for use in browser or Node.js
+// Export for use in browser (ES modules) or Node.js (CommonJS)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { TinyVM, OPCODES };
 }
+
+// ES module export for browser
+export { TinyVM, OPCODES };
 
