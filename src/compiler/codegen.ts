@@ -304,12 +304,27 @@ export class CodeGenerator {
     this.generateExpression(stmt.condition)
 
     // Jump to end if condition is false
-    // For comparisons: negative means false, zero/positive means true
-    // For ==: zero means true, non-zero means false
-    // We'll check if result is <= 0 by pushing 0 and comparing
-    // But simpler: use JMP_IF_NEG to exit if negative (works for <, >, <=, >=)
-    // For ==, we need special handling - but for now, let's use JMP_IF_NEG
-    // which works for most comparisons
+    // For comparisons like <: result is positive if true, zero/negative if false
+    // We need to jump if result is <= 0
+    // We can do this by: duplicate value, check if negative OR zero
+    // Simpler: push 0, subtract, if result is negative or zero, jump
+    // Actually, we can use: push 1, add, then JMP_IF_NEG
+    // If result is 0 or negative, adding 1 makes it <= 1, which is still <= 0 after subtracting 1
+    // Better: push 0, subtract, then JMP_IF_NEG (if result <= 0, then 0 - result >= 0, so don't jump)
+    // Actually, simplest: duplicate, push 0, subtract, JMP_IF_NEG
+    // If original is <= 0, then 0 - original >= 0, so JMP_IF_NEG won't jump... that's wrong
+    // Let's use: duplicate, push -1, add, JMP_IF_NEG
+    // If original is <= 0, then original + (-1) <= -1, so JMP_IF_NEG will jump ✓
+    const tempWhile = 254
+    this.bytecode.push(OPCODES.STORE)
+    this.bytecode.push(tempWhile) // Save condition result
+    this.bytecode.push(OPCODES.LOAD)
+    this.bytecode.push(tempWhile) // Load condition result
+    this.bytecode.push(OPCODES.PUSH)
+    this.bytecode.push(-1)
+    this.bytecode.push(OPCODES.ADD) // result - 1
+    // If result was <= 0, then result - 1 <= -1, so JMP_IF_NEG will jump
+    // If result was > 0, then result - 1 >= 0, so JMP_IF_NEG won't jump
     this.bytecode.push(OPCODES.JMP_IF_NEG)
     this.bytecode.push(endLabel) // Will be patched
 

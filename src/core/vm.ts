@@ -506,6 +506,9 @@ export class TinyVM {
           // Zero out the allocated memory
           this.heap.fill(0, heapAddr, heapAddr + size);
           this.push(heapAddr);
+          if (this.debugMode) {
+            console.log(`[MALLOC] Allocated ${size} bytes at heap address ${heapAddr}`);
+          }
           this.pc++;
           break;
 
@@ -580,6 +583,9 @@ export class TinyVM {
                              (this.heap[load32StackAddr + 3] << 24);
           // Convert unsigned to signed (two's complement)
           const signedValue32Stack = value32Stack | 0;
+          if (this.debugMode) {
+            console.log(`[LOAD32_STACK] Loaded value ${signedValue32Stack} from heap address ${load32StackAddr}`);
+          }
           this.push(signedValue32Stack);
           this.pc++;
           break;
@@ -596,6 +602,9 @@ export class TinyVM {
           this.heap[store32StackAddr + 1] = (store32StackValue >> 8) & 0xFF;
           this.heap[store32StackAddr + 2] = (store32StackValue >> 16) & 0xFF;
           this.heap[store32StackAddr + 3] = (store32StackValue >> 24) & 0xFF;
+          if (this.debugMode) {
+            console.log(`[STORE32_STACK] Stored value ${store32StackValue} at heap address ${store32StackAddr}`);
+          }
           this.pc++;
           break;
 

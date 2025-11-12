@@ -77,10 +77,14 @@ export function Episode16() {
     vm.reset()
 
     try {
-      const result = vm.execute(bytecode, false)
+      // Enable debug mode temporarily to see heap operations
+      vm.debugMode = true
+      const result = vm.execute(bytecode, true)
+      vm.debugMode = false
       setOutput(result)
       setRunning(false)
     } catch (err) {
+      vm.debugMode = false
       setError(err instanceof Error ? err.message : 'Unknown error')
       setRunning(false)
     }
