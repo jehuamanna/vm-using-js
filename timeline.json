@@ -175,6 +175,28 @@
         "Stack-based vs register-based",
         "VM design trade-offs"
       ]
+    },
+    {
+      "number": 10,
+      "title": "Bytecode Disassembler & Pretty Printer",
+      "commit": "feat(lesson): 10 - Bytecode Disassembler & Pretty Printer",
+      "files": [
+        "src/core/disassembler.ts",
+        "src/pages/Episode10.tsx",
+        "src/App.tsx",
+        "scripts/lessons/10_bytecode_disassembler_pretty_printer.md"
+      ],
+      "duration": "22-27 minutes",
+      "topics": [
+        "Bytecode disassembly",
+        "Disassembler implementation",
+        "Pretty printing",
+        "Macro pattern detection",
+        "Round-trip testing",
+        "Bytecode formatting",
+        "Debugging tools",
+        "Reverse engineering basics"
+      ]
     }
   ],
   "last_updated": "2024-01-01"
