@@ -83,7 +83,7 @@ function App() {
               <CardTitle>Demo 1: Simple Addition</CardTitle>
               <CardDescription>Calculate 5 + 3</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6">
+            <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6" style={{ gridTemplateRows: 'auto auto 1fr' }}>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
                 <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[180px] overflow-y-auto">
@@ -115,7 +115,7 @@ function App() {
               <CardTitle>Demo 2: Arithmetic Operations</CardTitle>
               <CardDescription>Calculate (10 - 3) * 2</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6">
+            <CardContent className="flex flex-col flex-1 grid grid-rows-[auto_auto_1fr] gap-6" style={{ gridTemplateRows: 'auto auto 1fr' }}>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-foreground">Bytecode</label>
                 <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed h-[180px] overflow-y-auto">
