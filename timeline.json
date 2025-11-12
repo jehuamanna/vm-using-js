@@ -154,6 +154,27 @@
         "Direct threading",
         "VM optimizations"
       ]
+    },
+    {
+      "number": 9,
+      "title": "Real-World Virtual Machines",
+      "commit": "feat(lesson): 09 - Real-World Virtual Machines",
+      "files": [
+        "src/pages/Episode09.tsx",
+        "src/App.tsx",
+        "scripts/lessons/09_real_world_virtual_machines.md"
+      ],
+      "duration": "25-30 minutes",
+      "topics": [
+        "JVM (Java Virtual Machine)",
+        "CLR (Common Language Runtime)",
+        "WebAssembly (WASM)",
+        "CHIP-8 virtual machine",
+        "Bytecode model comparison",
+        "Runtime guarantees",
+        "Stack-based vs register-based",
+        "VM design trade-offs"
+      ]
     }
   ],
   "last_updated": "2024-01-01"
