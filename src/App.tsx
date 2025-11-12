@@ -83,10 +83,10 @@ function App() {
               <CardTitle>Demo 1: Simple Addition</CardTitle>
               <CardDescription>Calculate 5 + 3</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Bytecode</label>
-                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border">
+                <label className="text-sm font-semibold text-foreground">Bytecode</label>
+                <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-green-300 p-4 rounded-md font-mono text-sm border border-border leading-relaxed">
                   PUSH 5<br />
                   PUSH 3<br />
                   ADD<br />
@@ -94,13 +94,15 @@ function App() {
                   HALT
                 </div>
               </div>
-              <div>
-                <Button onClick={runDemo1} className="w-full">
+              
+              <div className="flex justify-center">
+                <Button onClick={runDemo1} className="min-w-[140px]">
                   Run Demo 1
                 </Button>
               </div>
+              
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Output</label>
+                <label className="text-sm font-semibold text-foreground">Output</label>
                 <div className="bg-muted dark:bg-slate-900 text-foreground dark:text-slate-200 p-4 rounded-md font-mono text-sm min-h-[100px] whitespace-pre-wrap border border-border">
                   {output1}
                 </div>
