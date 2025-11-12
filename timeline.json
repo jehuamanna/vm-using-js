@@ -132,6 +132,28 @@
         "Source code expansion",
         "Enhanced assembler"
       ]
+    },
+    {
+      "number": 8,
+      "title": "Optimizations & JIT Basics",
+      "commit": "feat(lesson): 08 - Optimizations & JIT Basics",
+      "files": [
+        "src/core/interpreter-styles.ts",
+        "src/core/vm.ts",
+        "src/pages/Episode08.tsx",
+        "src/App.tsx",
+        "scripts/lessons/08_optimizations_and_jit_basics.md"
+      ],
+      "duration": "22-27 minutes",
+      "topics": [
+        "Interpreter styles",
+        "Switch-based interpreter",
+        "Dispatch table interpreter",
+        "Performance benchmarking",
+        "JIT compilation concepts",
+        "Direct threading",
+        "VM optimizations"
+      ]
     }
   ],
   "last_updated": "2024-01-01"

@@ -77,7 +77,7 @@ export class TinyVM {
   /**
    * Get opcode name for debugging
    */
-  private getOpcodeName(opcode: number): string {
+  protected getOpcodeName(opcode: number): string {
     const entries = Object.entries(OPCODES);
     const entry = entries.find(([_, value]) => value === opcode);
     return entry ? entry[0] : `UNKNOWN(0x${opcode.toString(16)})`;
@@ -86,7 +86,7 @@ export class TinyVM {
   /**
    * Create execution step for debugging
    */
-  private createExecutionStep(opcode: number, error?: string): ExecutionStep {
+  protected createExecutionStep(opcode: number, error?: string): ExecutionStep {
     return {
       pc: this.pc,
       opcode,
