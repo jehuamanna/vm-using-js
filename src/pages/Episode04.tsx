@@ -84,7 +84,7 @@ export function Episode04() {
       <div className="container mx-auto max-w-6xl">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-foreground mb-2">
-            🎬 Episode 4: Input and Output
+            Episode 4: Input and Output
           </h1>
           <p className="text-muted-foreground text-lg">
             Interactive input with READ instruction
