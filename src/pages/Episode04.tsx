@@ -23,8 +23,15 @@ export function Episode04() {
     setOutput1('Running...\n')
     updateStack()
 
-    const num1 = parseInt(input1) || 0
-    const num2 = parseInt(input2) || 0
+    const num1 = parseInt(input1.trim())
+    const num2 = parseInt(input2.trim())
+
+    // Validate inputs
+    if (isNaN(num1) || isNaN(num2)) {
+      setOutput1('Error: Please enter valid numbers for both inputs.')
+      updateStack()
+      return
+    }
 
     // Add inputs to the queue
     vm.addInput(num1)
@@ -53,7 +60,14 @@ export function Episode04() {
     setCalcOutput('Running...\n')
     updateStack()
 
-    const num = parseInt(calcInput) || 0
+    const num = parseInt(calcInput.trim())
+
+    // Validate input
+    if (isNaN(num)) {
+      setCalcOutput('Error: Please enter a valid number.')
+      updateStack()
+      return
+    }
 
     // Add input to the queue
     vm.addInput(num)
@@ -117,6 +131,7 @@ export function Episode04() {
                     type="number"
                     value={input1}
                     onChange={(e) => setInput1(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && runDemo1()}
                     placeholder="Enter number"
                   />
                 </div>
@@ -127,6 +142,7 @@ export function Episode04() {
                     type="number"
                     value={input2}
                     onChange={(e) => setInput2(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && runDemo1()}
                     placeholder="Enter number"
                   />
                 </div>
@@ -173,6 +189,7 @@ export function Episode04() {
                   type="number"
                   value={calcInput}
                   onChange={(e) => setCalcInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && runCalculator()}
                   placeholder="Enter number"
                 />
               </div>
