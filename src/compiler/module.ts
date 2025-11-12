@@ -15,6 +15,7 @@ export interface ModuleInfo {
   exports: Map<string, number> // Symbol name -> address
   imports: Array<{ names: string[]; module: string }>
   errors: string[]
+  relocationTable?: Array<{ offset: number; functionName: string }>
 }
 
 export interface LinkedModule {
@@ -37,6 +38,7 @@ export function parseModule(name: string, source: string): ModuleInfo {
     exports: result.exportMap || new Map(),
     imports: [],
     errors: result.errors,
+    relocationTable: result.relocationTable || [],
   }
 
   // Extract imports from AST
@@ -127,46 +129,49 @@ export function linkModules(modules: ModuleInfo[]): LinkedModule {
       }
     }
     
-    // Patch function call addresses for imported functions
-    // Scan for CALL instructions with placeholder address (0) and patch them
-    // This is a simplified approach - a real linker would use a relocation table
-    // to track which CALL corresponds to which imported function
-    const importedNames = new Set<string>()
-    for (const imp of module.imports) {
-      for (const name of imp.names) {
-        importedNames.add(name)
-      }
-    }
-    
-    // For each imported function, find and patch CALL instructions
-    // Note: This assumes CALL 0 is for imported functions (simplified)
-    // A real linker would track function call sites more precisely
+    // Build a map of imported function names to their addresses
+    const importedFunctionAddresses = new Map<string, number>()
     for (const imp of module.imports) {
       for (const name of imp.names) {
         const fullName = `${imp.module}.${name}`
         const symbolAddress = symbolTable.get(fullName)
         if (symbolAddress !== undefined) {
-          // Find first CALL with placeholder (0) and patch it
-          // In a full implementation, we'd track which CALL corresponds to which function
-          for (let i = 0; i < moduleBytecode.length - 1; i++) {
-            if (moduleBytecode[i] === OPCODES.CALL && moduleBytecode[i + 1] === 0) {
-              moduleBytecode[i + 1] = symbolAddress
-              break // Patch first occurrence (simplified - real linker would patch all)
-            }
-          }
+          importedFunctionAddresses.set(name, symbolAddress)
         }
       }
     }
     
-    // Adjust internal function call addresses by module offset
+    // Get the function map for this module to identify internal functions
+    const compileResult = compile(module.source)
+    const moduleFunctionMap = compileResult.functionMap || new Map()
+    
+    // First, adjust internal function call addresses by module offset
     // Internal calls are relative to module start, so we add the module's base address
     for (let i = 0; i < moduleBytecode.length - 1; i++) {
       if (moduleBytecode[i] === OPCODES.CALL) {
         const callAddr = moduleBytecode[i + 1]
-        // If it's not a placeholder (0), it's an internal call that needs offset adjustment
-        // Skip if it was already patched (address >= current module size would indicate external)
+        // If it's a placeholder (0), it's an imported function - we'll patch it next
+        // Otherwise, if it's within the module's bytecode range, it's an internal call
         if (callAddr !== 0 && callAddr < module.bytecode.length) {
           moduleBytecode[i + 1] = currentAddress + callAddr
+        }
+      }
+    }
+    
+    // Now patch imported function calls using the relocation table
+    // The relocation table tells us which function name each CALL 0 refers to
+    if (module.relocationTable) {
+      for (const reloc of module.relocationTable) {
+        const address = importedFunctionAddresses.get(reloc.functionName)
+        if (address !== undefined) {
+          // reloc.offset is the bytecode offset where the address should be patched
+          if (reloc.offset < moduleBytecode.length) {
+            moduleBytecode[reloc.offset] = address
+          } else {
+            errors.push(`Invalid relocation offset ${reloc.offset} in module "${module.name}"`)
+          }
+        } else {
+          errors.push(`Imported function "${reloc.functionName}" not found for relocation in module "${module.name}"`)
         }
       }
     }

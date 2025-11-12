@@ -12,6 +12,7 @@ export class CodeGenerator {
   private functionMap: Map<string, number> = new Map() // Function name -> address
   private exportMap: Map<string, number> = new Map() // Exported symbol name -> address
   private importedFunctions: Set<string> = new Set() // Functions imported from other modules
+  private relocationTable: Array<{ offset: number; functionName: string }> = [] // Track imported function call sites
   
   // Get variable map for debugging
   getVariableMap(): Map<string, number> {
@@ -26,6 +27,11 @@ export class CodeGenerator {
   // Get export map
   getExportMap(): Map<string, number> {
     return new Map(this.exportMap)
+  }
+  
+  // Get relocation table
+  getRelocationTable(): Array<{ offset: number; functionName: string }> {
+    return [...this.relocationTable]
   }
   
   private nextVariableAddress: number = 0
@@ -45,6 +51,7 @@ export class CodeGenerator {
     this.functionBodies = []
     this.exportedVariables.clear()
     this.importedFunctions.clear()
+    this.relocationTable = []
     this.nextVariableAddress = 0
     this.labelCounter = 0
 
@@ -500,10 +507,11 @@ export class CodeGenerator {
     if (funcAddress === undefined) {
       // Check if it's an imported function - if so, we'll resolve it during linking
       if (this.importedFunctions.has(expr.name)) {
-        // For now, use a placeholder address (0) - the linker should patch this
-        // In a full implementation, we'd use a relocation table
+        // Record this call site in the relocation table
+        const callOffset = this.bytecode.length
         this.bytecode.push(OPCODES.CALL)
         this.bytecode.push(0) // Placeholder - will be patched by linker
+        this.relocationTable.push({ offset: callOffset + 1, functionName: expr.name })
         return
       }
       throw new Error(`Undefined function: ${expr.name}`)

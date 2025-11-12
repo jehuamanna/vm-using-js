@@ -15,6 +15,7 @@ export interface CompileResult {
   variableMap?: Map<string, number>
   functionMap?: Map<string, number>
   exportMap?: Map<string, number>
+  relocationTable?: Array<{ offset: number; functionName: string }>
 }
 
 export function compile(source: string): CompileResult {
@@ -41,6 +42,7 @@ export function compile(source: string): CompileResult {
       variableMap: generator.getVariableMap(),
       functionMap: generator.getFunctionMap(),
       exportMap: generator.getExportMap(),
+      relocationTable: generator.getRelocationTable(),
     }
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error))
