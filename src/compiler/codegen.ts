@@ -715,27 +715,28 @@ export class CodeGenerator {
     this.bytecode.push(OPCODES.MALLOC) // Returns heap address on stack
     
     // Store array length at the beginning
-    const tempAddr = 249
+    const tempAddr = 249 // This will hold the base address permanently
     this.bytecode.push(OPCODES.STORE)
-    this.bytecode.push(tempAddr) // Save address
+    this.bytecode.push(tempAddr) // Save base address to tempAddr
     this.bytecode.push(OPCODES.PUSH)
     this.bytecode.push(arrayLength)
     this.bytecode.push(OPCODES.LOAD)
-    this.bytecode.push(tempAddr)
-    // Stack: [arrayLength, address]
+    this.bytecode.push(tempAddr) // Load base address from tempAddr
+    // Stack: [arrayLength, baseAddress]
     // STORE32_STACK pops: value first, then address
     // So we need: [address, value] on stack - swap them
+    // Use different temp variables to avoid overwriting tempAddr
     const swapTempLen = 247
     this.bytecode.push(OPCODES.STORE)
-    this.bytecode.push(swapTempLen) // Store address
+    this.bytecode.push(swapTempLen) // Store baseAddress (don't use tempAddr!)
     this.bytecode.push(OPCODES.STORE)
     this.bytecode.push(swapTempLen + 1) // Store length
     this.bytecode.push(OPCODES.LOAD)
-    this.bytecode.push(swapTempLen) // Load address
+    this.bytecode.push(swapTempLen) // Load baseAddress
     this.bytecode.push(OPCODES.LOAD)
     this.bytecode.push(swapTempLen + 1) // Load length
-    // Stack: [address, length] - correct order
-    this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit
+    // Stack: [baseAddress, length] - correct order
+    this.bytecode.push(OPCODES.STORE32_STACK) // Store length as 32-bit at baseAddress
     
     // Store each element as 32-bit value
     for (let i = 0; i < elements.length; i++) {
