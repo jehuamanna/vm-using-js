@@ -18,6 +18,9 @@ export enum TokenType {
   READ = 'READ',
   FN = 'FN',
   RETURN = 'RETURN',
+  TRY = 'TRY',
+  CATCH = 'CATCH',
+  THROW = 'THROW',
   
   // Operators
   PLUS = 'PLUS',
@@ -61,6 +64,9 @@ const KEYWORDS: Record<string, TokenType> = {
   'read': TokenType.READ,
   'fn': TokenType.FN,
   'return': TokenType.RETURN,
+  'try': TokenType.TRY,
+  'catch': TokenType.CATCH,
+  'throw': TokenType.THROW,
 }
 
 export class Lexer {

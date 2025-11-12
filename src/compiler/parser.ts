@@ -15,6 +15,8 @@ export type ASTNode =
   | ReadStatement
   | FunctionDefinition
   | ReturnStatement
+  | TryStatement
+  | ThrowStatement
   | BinaryExpression
   | UnaryExpression
   | NumberLiteral
@@ -37,6 +39,8 @@ export type Statement =
   | ReadStatement
   | FunctionDefinition
   | ReturnStatement
+  | TryStatement
+  | ThrowStatement
 
 export interface LetStatement {
   type: 'LetStatement'
@@ -131,6 +135,18 @@ export interface FunctionCall {
   type: 'FunctionCall'
   name: string
   arguments: Expression[]
+}
+
+export interface TryStatement {
+  type: 'TryStatement'
+  tryBlock: Statement[]
+  catchBlock: Statement[]
+  catchVariable?: string
+}
+
+export interface ThrowStatement {
+  type: 'ThrowStatement'
+  value: Expression
 }
 
 export class Parser {
@@ -240,6 +256,10 @@ export class Parser {
         return this.parseFunctionDefinition()
       case TokenType.RETURN:
         return this.parseReturnStatement()
+      case TokenType.TRY:
+        return this.parseTryStatement()
+      case TokenType.THROW:
+        return this.parseThrowStatement()
       case TokenType.SEMICOLON:
         this.advance()
         return null
@@ -375,6 +395,43 @@ export class Parser {
     this.expect(TokenType.SEMICOLON)
     return {
       type: 'ReturnStatement',
+      value,
+    }
+  }
+
+  private parseTryStatement(): TryStatement {
+    this.expect(TokenType.TRY)
+    this.expect(TokenType.LEFT_BRACE)
+    const tryBlock = this.parseBlock()
+    this.expect(TokenType.RIGHT_BRACE)
+    
+    this.expect(TokenType.CATCH)
+    this.expect(TokenType.LEFT_PAREN)
+    
+    let catchVariable: string | undefined
+    if (this.current().type === TokenType.IDENTIFIER) {
+      catchVariable = this.expect(TokenType.IDENTIFIER).value as string
+    }
+    
+    this.expect(TokenType.RIGHT_PAREN)
+    this.expect(TokenType.LEFT_BRACE)
+    const catchBlock = this.parseBlock()
+    this.expect(TokenType.RIGHT_BRACE)
+
+    return {
+      type: 'TryStatement',
+      tryBlock,
+      catchBlock,
+      catchVariable,
+    }
+  }
+
+  private parseThrowStatement(): ThrowStatement {
+    this.expect(TokenType.THROW)
+    const value = this.parseExpression()
+    this.expect(TokenType.SEMICOLON)
+    return {
+      type: 'ThrowStatement',
       value,
     }
   }

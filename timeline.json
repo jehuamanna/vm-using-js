@@ -247,6 +247,32 @@
         "Call stack integration",
         "High-level function syntax"
       ]
+    },
+    {
+      "number": 13,
+      "title": "Exceptions & Stack Traces",
+      "commit": "feat(lesson): 13 - Exceptions & Stack Traces",
+      "files": [
+        "src/core/vm.ts",
+        "src/core/assembler.ts",
+        "src/compiler/lexer.ts",
+        "src/compiler/parser.ts",
+        "src/compiler/codegen.ts",
+        "src/pages/Episode13.tsx",
+        "src/App.tsx",
+        "scripts/lessons/13_exceptions_and_stack_traces.md"
+      ],
+      "duration": "25-30 minutes",
+      "topics": [
+        "Exception handling",
+        "Try/catch blocks",
+        "Throw statements",
+        "Stack unwinding",
+        "Stack traces",
+        "ENTER_TRY, LEAVE_TRY, THROW opcodes",
+        "Exception propagation",
+        "Error recovery"
+      ]
     }
   ],
   "last_updated": "2024-01-01"

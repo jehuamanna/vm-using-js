@@ -132,6 +132,12 @@ export class CodeGenerator {
       case 'ReturnStatement':
         this.generateReturnStatement(stmt)
         break
+      case 'TryStatement':
+        this.generateTryStatement(stmt)
+        break
+      case 'ThrowStatement':
+        this.generateThrowStatement(stmt)
+        break
     }
   }
 
@@ -463,16 +469,87 @@ export class CodeGenerator {
     this.bytecode.push(OPCODES.RET)
   }
 
+  private generateTryStatement(stmt: { tryBlock: Statement[]; catchBlock: Statement[]; catchVariable?: string }): void {
+    // Generate ENTER_TRY with placeholder for catch handler address
+    const catchHandlerLabel = this.newLabel()
+    const enterTryAddress = this.bytecode.length
+    this.bytecode.push(OPCODES.ENTER_TRY)
+    this.bytecode.push(catchHandlerLabel) // Will be patched later
+    
+    // Generate try block
+    for (const tryStmt of stmt.tryBlock) {
+      this.generateStatement(tryStmt)
+    }
+    
+    // Generate LEAVE_TRY (if we reach here, no exception was thrown)
+    this.bytecode.push(OPCODES.LEAVE_TRY)
+    
+    // Jump over catch handler
+    const endLabel = this.newLabel()
+    this.bytecode.push(OPCODES.JMP)
+    this.bytecode.push(endLabel)
+    
+    // Generate catch handler
+    const catchHandlerAddress = this.bytecode.length
+    this.patchJump(catchHandlerLabel, catchHandlerAddress)
+    
+    // If catch variable is specified, store exception value in it
+    if (stmt.catchVariable) {
+      // Exception value is already on stack from THROW
+      if (this.isInFunction) {
+        // Store in local variable
+        if (!this.currentFunctionLocals.has(stmt.catchVariable)) {
+          const localOffset = this.nextLocalOffset++
+          this.currentFunctionLocals.set(stmt.catchVariable, localOffset)
+        }
+        const localOffset = this.currentFunctionLocals.get(stmt.catchVariable)!
+        this.bytecode.push(OPCODES.STORE_LOCAL)
+        this.bytecode.push(localOffset)
+      } else {
+        // Store in global variable
+        if (!this.variableMap.has(stmt.catchVariable)) {
+          this.variableMap.set(stmt.catchVariable, this.nextVariableAddress++)
+        }
+        const address = this.variableMap.get(stmt.catchVariable)!
+        this.bytecode.push(OPCODES.STORE)
+        this.bytecode.push(address)
+      }
+    } else {
+      // Pop exception value if no catch variable
+      this.bytecode.push(OPCODES.STORE)
+      this.bytecode.push(255) // Discard
+    }
+    
+    // Generate catch block
+    for (const catchStmt of stmt.catchBlock) {
+      this.generateStatement(catchStmt)
+    }
+    
+    // Patch end jump
+    const endAddress = this.bytecode.length
+    this.patchJump(endLabel, endAddress)
+  }
+
+  private generateThrowStatement(stmt: { value: Expression }): void {
+    // Generate code for exception value
+    this.generateExpression(stmt.value)
+    // Throw exception
+    this.bytecode.push(OPCODES.THROW)
+  }
+
   private newLabel(): number {
     return this.labelCounter++
   }
 
   private patchJump(label: number, address: number): void {
-    // Find the JMP or JMP_IF_ZERO instruction that references this label
+    // Find the JMP, JMP_IF_ZERO, JMP_IF_NEG, or ENTER_TRY instruction that references this label
     // and replace the label with the actual address
     for (let i = 0; i < this.bytecode.length; i++) {
       if (
-        (this.bytecode[i] === OPCODES.JMP || this.bytecode[i] === OPCODES.JMP_IF_ZERO || this.bytecode[i] === OPCODES.JMP_IF_NEG) &&
+        (this.bytecode[i] === OPCODES.JMP || 
+         this.bytecode[i] === OPCODES.JMP_IF_ZERO || 
+         this.bytecode[i] === OPCODES.JMP_IF_NEG ||
+         this.bytecode[i] === OPCODES.ENTER_TRY) &&
         i + 1 < this.bytecode.length &&
         this.bytecode[i + 1] === label
       ) {

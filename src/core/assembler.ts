@@ -28,6 +28,9 @@ export const OPCODE_REFERENCE: OpcodeInfo[] = [
   { name: 'RET', value: 0x0D, description: 'Return from function', operands: 0, example: 'RET' },
   { name: 'LOAD_LOCAL', value: 0x0E, description: 'Load from frame-relative local variable', operands: 1, example: 'LOAD_LOCAL 0' },
   { name: 'STORE_LOCAL', value: 0x0F, description: 'Store to frame-relative local variable', operands: 1, example: 'STORE_LOCAL 0' },
+  { name: 'ENTER_TRY', value: 0x10, description: 'Enter try block (address of catch handler)', operands: 1, example: 'ENTER_TRY 20' },
+  { name: 'LEAVE_TRY', value: 0x11, description: 'Leave try block', operands: 0, example: 'LEAVE_TRY' },
+  { name: 'THROW', value: 0x12, description: 'Throw exception (error code on stack)', operands: 0, example: 'THROW' },
 ]
 
 // Reverse lookup: opcode name to value

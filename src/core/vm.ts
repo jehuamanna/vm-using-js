@@ -20,6 +20,9 @@ export const OPCODES = {
   RET: 0x0D,         // Episode 5: Return from function
   LOAD_LOCAL: 0x0E,  // Episode 5: Load from frame-relative local variable
   STORE_LOCAL: 0x0F, // Episode 5: Store to frame-relative local variable
+  ENTER_TRY: 0x10,   // Episode 13: Enter try block (address of catch handler)
+  LEAVE_TRY: 0x11,   // Episode 13: Leave try block
+  THROW: 0x12,       // Episode 13: Throw exception (error code on stack)
   HALT: 0x00
 } as const;
 
@@ -29,6 +32,12 @@ interface CallFrame {
   returnAddress: number;
   stackPointer: number; // Stack size when function was called
   frameBase: number;    // Base address in memory for local variables
+}
+
+interface TryBlock {
+  tryStart: number;     // Address where try block starts
+  catchHandler: number; // Address of catch handler
+  stackPointer: number; // Stack size when try block was entered
 }
 
 export interface ExecutionStep {
@@ -49,12 +58,18 @@ export class TinyVM {
   output: number[] = [];
   inputQueue: number[] = []; // Episode 4: Queue for input values
   callStack: CallFrame[] = []; // Episode 5: Call stack for function calls
+  tryStack: TryBlock[] = []; // Episode 13: Stack of active try blocks
   
   // Episode 6: Debugging support
   debugMode: boolean = false;
   executionTrace: ExecutionStep[] = [];
   maxStackSize: number = 1000; // Episode 6: Stack overflow protection
   stepCallback?: (step: ExecutionStep) => void; // Episode 6: Step callback for debugging
+  
+  // Episode 13: Exception handling
+  exceptionThrown: boolean = false;
+  exceptionValue: number = 0;
+  stackTrace: Array<{ address: number; functionName?: string }> = [];
 
   constructor(memorySize: number = 256) {
     this.memory = new Array(memorySize).fill(0);
@@ -316,6 +331,80 @@ export class TinyVM {
           this.pc++;
           break;
 
+        case OPCODES.ENTER_TRY:
+          // Enter try block: push try block info onto try stack
+          this.pc++;
+          const catchHandler = bytecode[this.pc];
+          if (catchHandler < 0 || catchHandler >= bytecode.length) {
+            throw new Error(`Invalid catch handler address: ${catchHandler}`);
+          }
+          this.tryStack.push({
+            tryStart: this.pc - 1, // Address of ENTER_TRY instruction
+            catchHandler: catchHandler,
+            stackPointer: this.stack.length
+          });
+          this.pc++;
+          break;
+
+        case OPCODES.LEAVE_TRY:
+          // Leave try block: pop from try stack
+          if (this.tryStack.length === 0) {
+            throw new Error('LEAVE_TRY called but no active try block');
+          }
+          this.tryStack.pop();
+          this.pc++;
+          break;
+
+        case OPCODES.THROW:
+          // Throw exception: unwind stack and jump to catch handler
+          if (this.stack.length === 0) {
+            throw new Error('THROW called but stack is empty');
+          }
+          this.exceptionValue = this.pop();
+          this.exceptionThrown = true;
+          
+          // Build stack trace
+          this.stackTrace = [];
+          for (const frame of this.callStack) {
+            this.stackTrace.push({ address: frame.returnAddress });
+          }
+          this.stackTrace.push({ address: this.pc });
+          
+          // Unwind stack to try block's stack pointer
+          // Find the innermost try block
+          if (this.tryStack.length === 0) {
+            // No try block to catch exception - propagate up
+            // Unwind all call frames
+            while (this.callStack.length > 0) {
+              const frame = this.callStack.pop()!;
+              // Restore stack to frame's stack pointer
+              while (this.stack.length > frame.stackPointer) {
+                this.stack.pop();
+              }
+            }
+            // Unwind try blocks
+            this.tryStack = [];
+            throw new Error(`Uncaught exception: ${this.exceptionValue}`);
+          }
+          
+          const tryBlock = this.tryStack.pop()!;
+          // Unwind stack to try block's stack pointer
+          while (this.stack.length > tryBlock.stackPointer) {
+            this.stack.pop();
+          }
+          
+          // Unwind all try blocks that are nested inside this one
+          while (this.tryStack.length > 0 && this.tryStack[this.tryStack.length - 1].tryStart > tryBlock.tryStart) {
+            this.tryStack.pop();
+          }
+          
+          // Jump to catch handler
+          this.pc = tryBlock.catchHandler;
+          // Push exception value onto stack for catch handler
+          this.push(this.exceptionValue);
+          this.exceptionThrown = false;
+          break;
+
         case OPCODES.HALT:
           this.running = false;
           this.pc++;
@@ -356,10 +445,29 @@ export class TinyVM {
     this.output = [];
     this.inputQueue = [];
     this.callStack = [];
+    this.tryStack = [];
     this.executionTrace = [];
     this.debugMode = false;
+    this.exceptionThrown = false;
+    this.exceptionValue = 0;
+    this.stackTrace = [];
   }
   
+  /**
+   * Episode 13: Get formatted stack trace
+   */
+  getStackTrace(): string {
+    if (this.stackTrace.length === 0) {
+      return 'No stack trace available';
+    }
+    const lines = ['Stack trace:'];
+    for (let i = 0; i < this.stackTrace.length; i++) {
+      const entry = this.stackTrace[i];
+      lines.push(`  at address ${entry.address}${entry.functionName ? ` (${entry.functionName})` : ''}`);
+    }
+    return lines.join('\n');
+  }
+
   /**
    * Episode 6: Enable debug mode with step callback
    */
