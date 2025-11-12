@@ -757,7 +757,8 @@ export class CodeGenerator {
       // STORE32_STACK pops: value first, then address
       // So we need: [address, value] on stack
       // Swap them: store both temporarily, then reload in correct order
-      const swapTemp = 248
+      // Use different temp addresses to avoid conflicts (243-244 are free)
+      const swapTemp = 243
       this.bytecode.push(OPCODES.STORE)
       this.bytecode.push(swapTemp) // Store elementAddress (top of stack)
       this.bytecode.push(OPCODES.STORE)
