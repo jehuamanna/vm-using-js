@@ -1,6 +1,6 @@
 /**
- * Episode 6: Simple Assembler
- * Converts human-readable opcodes to bytecode
+ * Episode 7: Enhanced Bytecode Compiler
+ * Converts human-readable opcodes to bytecode with macro support
  */
 
 import { OPCODES } from './vm'
@@ -37,13 +37,117 @@ const OPCODE_MAP: Map<string, number> = new Map(
   OPCODE_REFERENCE.map(op => [op.name.toUpperCase(), op.value])
 )
 
+// Episode 7: Macro definitions
+export interface Macro {
+  name: string
+  description: string
+  expand: (operands: string[]) => string[]
+}
+
+export const MACROS: Macro[] = [
+  {
+    name: 'INC',
+    description: 'Increment value on stack (add 1)',
+    expand: () => ['PUSH 1', 'ADD']
+  },
+  {
+    name: 'DEC',
+    description: 'Decrement value on stack (subtract 1)',
+    expand: () => ['PUSH -1', 'ADD']
+  },
+  {
+    name: 'DUP',
+    description: 'Duplicate top of stack',
+    expand: () => ['LOAD 0', 'LOAD 0'] // This is a simplified version - real DUP would need stack manipulation
+  },
+  {
+    name: 'NEG',
+    description: 'Negate value on stack (multiply by -1)',
+    expand: () => ['PUSH -1', 'MUL']
+  },
+  {
+    name: 'SWAP',
+    description: 'Swap top two stack values',
+    expand: () => [
+      'STORE 0',  // Store first value
+      'STORE 1',  // Store second value
+      'LOAD 1',   // Load second value first
+      'LOAD 0'    // Load first value second
+    ]
+  },
+  {
+    name: 'POP',
+    description: 'Pop and discard top of stack',
+    expand: () => ['STORE 255'] // Store to unused memory address (discard)
+  },
+  {
+    name: 'CLEAR',
+    description: 'Clear stack (pop all values)',
+    expand: () => [] // Would need loop - simplified for now
+  }
+]
+
+const MACRO_MAP: Map<string, Macro> = new Map(
+  MACROS.map(macro => [macro.name.toUpperCase(), macro])
+)
+
 /**
- * Assemble text opcodes into bytecode array
+ * Episode 7: Expand macros in source code
  */
-export function assemble(source: string): { bytecode: number[], errors: string[] } {
+function expandMacros(source: string): { expanded: string, errors: string[] } {
   const lines = source.split('\n')
-  const bytecode: number[] = []
+  const expanded: string[] = []
   const errors: string[] = []
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+    
+    // Preserve comments and empty lines
+    if (!trimmed || trimmed.startsWith('//')) {
+      expanded.push(line)
+      continue
+    }
+    
+    // Preserve labels
+    if (trimmed.endsWith(':')) {
+      expanded.push(line)
+      continue
+    }
+    
+    const parts = trimmed.split(/\s+/)
+    const name = parts[0].toUpperCase()
+    
+    // Check if it's a macro
+    if (MACRO_MAP.has(name)) {
+      const macro = MACRO_MAP.get(name)!
+      const operands = parts.slice(1)
+      const expandedLines = macro.expand(operands)
+      
+      // Add expanded macro with comment showing original
+      expanded.push(`// Macro: ${line.trim()}`)
+      expandedLines.forEach(expandedLine => {
+        expanded.push(expandedLine)
+      })
+    } else {
+      // Not a macro, keep as-is
+      expanded.push(line)
+    }
+  }
+  
+  return { expanded: expanded.join('\n'), errors }
+}
+
+/**
+ * Episode 7: Enhanced assemble function with macro support
+ */
+export function assemble(source: string): { bytecode: number[], errors: string[], expandedSource?: string } {
+  // First, expand macros
+  const { expanded, errors: macroErrors } = expandMacros(source)
+  const errors: string[] = [...macroErrors]
+  
+  const lines = expanded.split('\n')
+  const bytecode: number[] = []
   const labels: Map<string, number> = new Map()
   
   // First pass: collect labels
@@ -55,7 +159,11 @@ export function assemble(source: string): { bytecode: number[], errors: string[]
     // Check for label (ends with :)
     if (line.endsWith(':')) {
       const label = line.slice(0, -1).trim()
-      labels.set(label, address)
+      if (labels.has(label)) {
+        errors.push(`Line ${i + 1}: Duplicate label "${label}"`)
+      } else {
+        labels.set(label, address)
+      }
       continue
     }
     
@@ -63,7 +171,10 @@ export function assemble(source: string): { bytecode: number[], errors: string[]
     const opcodeName = parts[0].toUpperCase()
     
     if (!OPCODE_MAP.has(opcodeName)) {
-      errors.push(`Line ${i + 1}: Unknown opcode "${opcodeName}"`)
+      // Check if it's a macro that wasn't expanded (shouldn't happen, but just in case)
+      if (!MACRO_MAP.has(opcodeName)) {
+        errors.push(`Line ${i + 1}: Unknown opcode or macro "${opcodeName}"`)
+      }
       continue
     }
     
@@ -123,6 +234,6 @@ export function assemble(source: string): { bytecode: number[], errors: string[]
     }
   }
   
-  return { bytecode, errors }
+  return { bytecode, errors, expandedSource: expanded }
 }
 

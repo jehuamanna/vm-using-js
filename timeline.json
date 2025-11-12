@@ -112,6 +112,26 @@
         "Execution tracing",
         "Step-by-step debugging"
       ]
+    },
+    {
+      "number": 7,
+      "title": "Bytecode Compiler",
+      "commit": "feat(lesson): 07 - Bytecode Compiler",
+      "files": [
+        "src/core/assembler.ts",
+        "src/pages/Episode07.tsx",
+        "src/App.tsx",
+        "scripts/lessons/07_bytecode_compiler.md"
+      ],
+      "duration": "20-25 minutes",
+      "topics": [
+        "Macro system",
+        "Macro expansion",
+        "Common macros (INC, DEC, NEG, SWAP, POP)",
+        "Compilation pipeline",
+        "Source code expansion",
+        "Enhanced assembler"
+      ]
     }
   ],
   "last_updated": "2024-01-01"
