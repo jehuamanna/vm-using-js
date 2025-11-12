@@ -10,6 +10,11 @@ export class CodeGenerator {
   private bytecode: number[] = []
   private variableMap: Map<string, number> = new Map()
   private functionMap: Map<string, number> = new Map() // Function name -> address
+  
+  // Get variable map for debugging
+  getVariableMap(): Map<string, number> {
+    return new Map(this.variableMap)
+  }
   private nextVariableAddress: number = 0
   private labelCounter: number = 0
   private functionBodies: Array<{ name: string; body: Statement[]; parameters: string[] }> = []

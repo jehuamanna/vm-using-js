@@ -37,6 +37,7 @@ print result;`)
     errors: string[]
     tokens?: any[]
     ast?: any
+    variableMap?: Map<string, number>
   } | null>(null)
   const [output, setOutput] = useState<string>('Output will appear here...')
   const [loading, setLoading] = useState<boolean>(false)
@@ -204,14 +205,41 @@ print result;`)
   const addWatch = () => {
     if (!watchInput.trim()) return
     
-    const address = parseInt(watchInput.trim())
-    if (isNaN(address)) {
-      alert('Please enter a valid address number')
-      return
+    const input = watchInput.trim()
+    let address: number | undefined
+    let watchName: string
+
+    // Try to parse as number first (memory address)
+    const numAddress = parseInt(input)
+    if (!isNaN(numAddress)) {
+      // It's a numeric address
+      address = numAddress
+      watchName = `${watchType}@${address}`
+    } else {
+      // It's a variable name - try to resolve it
+      if (watchType === 'variable') {
+        if (!compilationResult || !compilationResult.variableMap) {
+          alert('Please compile the code first to watch variables by name')
+          return
+        }
+        const varAddress = compilationResult.variableMap.get(input)
+        if (varAddress !== undefined) {
+          address = varAddress
+          watchName = input // Use the variable name
+        } else {
+          const availableVars = Array.from(compilationResult.variableMap.keys())
+          alert(`Variable "${input}" not found.${availableVars.length > 0 ? ` Available variables: ${availableVars.join(', ')}` : ' No variables found in the compiled code.'}`)
+          return
+        }
+      } else {
+        // Memory watch with non-numeric input
+        alert('Please enter a valid numeric address for memory watches')
+        return
+      }
     }
 
     const watch: Watch = {
-      name: `${watchType}@${address}`,
+      name: watchName,
       type: watchType,
       address: address,
     }
@@ -556,16 +584,26 @@ print result;`)
                   <option value="memory">Memory</option>
                 </select>
                 <Input
-                  type="number"
-                  placeholder="Address"
+                  type="text"
+                  placeholder={watchType === 'variable' ? 'Variable name or address' : 'Memory address'}
                   value={watchInput}
                   onChange={(e) => setWatchInput(e.target.value)}
                   className="flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      addWatch()
+                    }
+                  }}
                 />
-                <Button onClick={addWatch} size="sm">
+                <Button onClick={addWatch} size="sm" disabled={!compilationResult || compilationResult.errors.length > 0}>
                   Add Watch
                 </Button>
               </div>
+              {watchType === 'variable' && compilationResult && compilationResult.variableMap && compilationResult.variableMap.size > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  Available variables: {Array.from(compilationResult.variableMap.keys()).join(', ')}
+                </div>
+              )}
               <div className="space-y-2">
                 {vm.evaluateWatches().map((result, idx) => (
                   <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded-md">
