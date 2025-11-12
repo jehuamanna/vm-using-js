@@ -45,6 +45,7 @@ export function compile(source: string): CompileResult {
   }
 }
 
-export { Lexer, Parser, CodeGenerator } from './lexer'
-export * from './parser'
+export { Lexer } from './lexer'
+export { CodeGenerator } from './codegen'
+export * from './parser' // Exports Parser class and all AST types
 

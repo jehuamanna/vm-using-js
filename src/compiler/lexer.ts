@@ -348,6 +348,16 @@ export class Lexer {
       }
     }
 
+    // Ensure EOF token is always at the end
+    if (this.tokens.length === 0 || this.tokens[this.tokens.length - 1].type !== TokenType.EOF) {
+      this.tokens.push({
+        type: TokenType.EOF,
+        value: '',
+        line: this.line,
+        column: this.column,
+      })
+    }
+
     return this.tokens
   }
 }

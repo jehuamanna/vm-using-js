@@ -62,18 +62,29 @@ while (i < 5) {
   const compileCode = () => {
     setLoading(true)
     setOutput('Compiling...\n')
+    setCompilationResult(null)
     
-    setTimeout(() => {
-      const result = compile(sourceCode)
-      setCompilationResult(result)
-      setLoading(false)
-      
-      if (result.errors.length > 0) {
-        setOutput(`Compilation errors:\n${result.errors.join('\n')}`)
-      } else {
-        setOutput('Compilation successful! Click "Run" to execute the program.')
+    // Use requestAnimationFrame to ensure UI updates, then compile
+    requestAnimationFrame(() => {
+      try {
+        const result = compile(sourceCode)
+        setCompilationResult(result)
+        
+        if (result.errors.length > 0) {
+          setOutput(`Compilation errors:\n${result.errors.join('\n')}`)
+        } else {
+          setOutput('Compilation successful! Click "Run" to execute the program.')
+        }
+      } catch (error) {
+        setOutput(`Compilation error:\n${error instanceof Error ? error.message : String(error)}`)
+        setCompilationResult({
+          bytecode: [],
+          errors: [error instanceof Error ? error.message : String(error)],
+        })
+      } finally {
+        setLoading(false)
       }
-    }, 100)
+    })
   }
 
   const runCode = async () => {

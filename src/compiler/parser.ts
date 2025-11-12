@@ -153,12 +153,37 @@ export class Parser {
 
   parse(): Program {
     const statements: Statement[] = []
+    let lastPosition = this.position
+    let iterations = 0
+    const maxIterations = 10000 // Safety limit
 
     while (this.current().type !== TokenType.EOF) {
+      // Safety check to prevent infinite loops
+      if (iterations++ > maxIterations) {
+        throw new Error(
+          `Parser exceeded maximum iterations. Possible infinite loop at token ${this.current().type} at line ${this.current().line}, column ${this.current().column}`
+        )
+      }
+
       const stmt = this.parseStatement()
       if (stmt) {
         statements.push(stmt)
       }
+      
+      // Ensure we're making progress
+      if (this.position === lastPosition && this.current().type !== TokenType.EOF) {
+        // If we didn't advance and we're not at EOF, check what token we're stuck on
+        const currentToken = this.current()
+        if (currentToken.type === TokenType.RIGHT_BRACE) {
+          throw new Error(
+            `Unexpected '}' at line ${currentToken.line}, column ${currentToken.column}. Did you forget to close a block?`
+          )
+        }
+        throw new Error(
+          `Unexpected token ${currentToken.type} at line ${currentToken.line}, column ${currentToken.column}`
+        )
+      }
+      lastPosition = this.position
     }
 
     return {
@@ -169,6 +194,12 @@ export class Parser {
 
   private parseStatement(): Statement | null {
     const token = this.current()
+
+    // If we hit RIGHT_BRACE, it means we're at the end of a block
+    // This shouldn't happen if parseBlock is working correctly, but handle it defensively
+    if (token.type === TokenType.RIGHT_BRACE || token.type === TokenType.EOF) {
+      return null
+    }
 
     switch (token.type) {
       case TokenType.LET:
@@ -240,6 +271,14 @@ export class Parser {
     this.expect(TokenType.RIGHT_PAREN)
     this.expect(TokenType.LEFT_BRACE)
     const body = this.parseBlock()
+    
+    // parseBlock() stops at RIGHT_BRACE but doesn't consume it, so we consume it here
+    // Verify we're at RIGHT_BRACE before consuming
+    if (this.current().type !== TokenType.RIGHT_BRACE) {
+      throw new Error(
+        `Expected '}' to close while loop, but found ${this.current().type} at line ${this.current().line}, column ${this.current().column}`
+      )
+    }
     this.expect(TokenType.RIGHT_BRACE)
 
     return {
@@ -271,14 +310,37 @@ export class Parser {
 
   private parseBlock(): Statement[] {
     const statements: Statement[] = []
+    let lastPosition = this.position
+    let iterations = 0
+    const maxIterations = 1000
 
     while (this.current().type !== TokenType.RIGHT_BRACE && this.current().type !== TokenType.EOF) {
+      // Safety check
+      if (iterations++ > maxIterations) {
+        throw new Error('parseBlock exceeded maximum iterations')
+      }
+
       const stmt = this.parseStatement()
       if (stmt) {
         statements.push(stmt)
       }
+      
+      // If we hit RIGHT_BRACE, exit (parseStatement returns null for it)
+      if (this.current().type === TokenType.RIGHT_BRACE) {
+        break
+      }
+      
+      // Safety check: ensure we're making progress
+      if (this.position === lastPosition) {
+        // We didn't advance - this shouldn't happen
+        throw new Error(
+          `Parser stuck at token ${this.current().type} at line ${this.current().line}, column ${this.current().column}`
+        )
+      }
+      lastPosition = this.position
     }
 
+    // At this point, we should be at RIGHT_BRACE (which we don't consume - caller will)
     return statements
   }
 
