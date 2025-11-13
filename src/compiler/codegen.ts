@@ -1,10 +1,12 @@
 /**
  * Episode 11: Code Generator
+ * Episode 17: Added builtin function support
  * Converts AST to bytecode
  */
 
 import { Program, Statement, Expression } from './parser'
 import { OPCODES } from '../core/vm'
+import { BUILTIN_NAME_MAP } from '../core/builtins'
 
 export class CodeGenerator {
   private bytecode: number[] = []
@@ -668,6 +670,17 @@ export class CodeGenerator {
     // Push arguments in order (left to right)
     for (const arg of expr.arguments) {
       this.generateExpression(arg)
+    }
+
+    // Episode 17: Check if it's a builtin function
+    const builtinID = BUILTIN_NAME_MAP.get(expr.name)
+    if (builtinID !== undefined) {
+      // Push builtin ID and call builtin
+      this.bytecode.push(OPCODES.PUSH)
+      this.bytecode.push(builtinID)
+      this.bytecode.push(OPCODES.CALL_BUILTIN)
+      // Result is left on stack
+      return
     }
 
     // Get function address

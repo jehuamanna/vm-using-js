@@ -1,7 +1,10 @@
 /**
  * Episode 1-6: Tiny VM with Control Flow, Memory, I/O, Functions, and Debugging
+ * Episode 17: Added builtin function support
  * A minimal stack-based virtual machine implementation
  */
+
+import { BUILTINS, BuiltinID } from './builtins'
 
 // Opcodes
 export const OPCODES = {
@@ -31,6 +34,7 @@ export const OPCODES = {
   LOAD32_STACK: 0x18, // Episode 16: Load 32-bit value from heap (address on stack)
   STORE32_STACK: 0x19, // Episode 16: Store 32-bit value to heap (address on stack)
   STORE8_STACK: 0x1A, // Episode 16: Store 8-bit value to heap (address on stack)
+  CALL_BUILTIN: 0x1B, // Episode 17: Call builtin function (builtin ID on stack)
   HALT: 0x00
 } as const;
 
@@ -655,6 +659,31 @@ export class TinyVM {
             throw new Error(`Invalid heap address for STORE8_STACK: ${store8StackAddr}`);
           }
           this.heap[store8StackAddr] = store8StackValue & 0xFF;
+          this.pc++;
+          break;
+
+        case OPCODES.CALL_BUILTIN:
+          // Episode 17: Call builtin function
+          // Builtin ID is on stack
+          const builtinID = this.pop();
+          const builtin = BUILTINS.get(builtinID as BuiltinID);
+          if (!builtin) {
+            throw new Error(`Unknown builtin ID: ${builtinID}`);
+          }
+          // Call builtin with VM interface
+          builtin({
+            stack: this.stack,
+            heap: this.heap,
+            heapNext: this.heapNext,
+            inputQueue: this.inputQueue,
+            output: this.output,
+            pop: () => this.pop(),
+            push: (value: number) => this.push(value),
+            setHeapNext: (value: number) => { this.heapNext = value; },
+          });
+          if (this.debugMode) {
+            console.log(`[CALL_BUILTIN] Called builtin ${builtinID}`);
+          }
           this.pc++;
           break;
 

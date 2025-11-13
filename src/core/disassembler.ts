@@ -1,9 +1,11 @@
 /**
  * Episode 10: Bytecode Disassembler & Pretty Printer
+ * Episode 17: Added support for CALL_BUILTIN with builtin name resolution
  * Converts bytecode arrays back to human-readable mnemonics
  */
 
 import { OPCODE_REFERENCE, MACROS } from './assembler'
+import { BUILTIN_NAME_MAP, BuiltinID } from './builtins'
 
 export interface DisassemblyLine {
   address: number
@@ -12,6 +14,7 @@ export interface DisassemblyLine {
   operands: number[]
   rawBytes: number[]
   comment?: string
+  skip?: boolean // Episode 17: Skip this line in display (e.g., PUSH before CALL_BUILTIN)
 }
 
 export interface DisassemblyResult {
@@ -70,7 +73,35 @@ export function disassemble(bytecode: number[]): DisassemblyResult {
 
     // Build mnemonic string
     let mnemonic = opcodeInfo.name
-    if (operands.length > 0) {
+    let comment: string | undefined
+    
+    // Episode 17: Special handling for CALL_BUILTIN
+    // Look backwards to find the PUSH that pushed the builtin ID
+    if (opcode === 0x1B) { // CALL_BUILTIN
+      // Look back for PUSH instruction
+      if (i >= 2 && bytecode[i - 2] === 0x01) { // PUSH opcode
+        const builtinID = bytecode[i - 1] as BuiltinID
+        // Mark the previous PUSH instruction to skip it
+        if (lines.length > 0 && lines[lines.length - 1].opcode === 0x01) {
+          lines[lines.length - 1].skip = true
+        }
+        // Find builtin name
+        for (const [name, id] of BUILTIN_NAME_MAP.entries()) {
+          if (id === builtinID) {
+            mnemonic = `CALL_BUILTIN ${name}`
+            comment = `builtin ID: ${builtinID}`
+            break
+          }
+        }
+        if (!comment) {
+          mnemonic = `CALL_BUILTIN <unknown: ${builtinID}>`
+          comment = `builtin ID: ${builtinID}`
+        }
+      } else {
+        mnemonic = 'CALL_BUILTIN <builtin ID on stack>'
+        comment = 'builtin ID must be on stack'
+      }
+    } else if (operands.length > 0) {
       mnemonic += ' ' + operands.join(' ')
     }
 
@@ -79,7 +110,8 @@ export function disassemble(bytecode: number[]): DisassemblyResult {
       opcode,
       mnemonic,
       operands,
-      rawBytes
+      rawBytes,
+      comment
     })
 
     i++

@@ -735,7 +735,19 @@ export class Parser {
 
       case TokenType.IDENTIFIER:
         this.advance()
-        const name = token.value as string
+        let name = token.value as string
+        
+        // Handle qualified names like std.math.abs
+        while (this.current().type === TokenType.DOT) {
+          this.advance() // consume the dot
+          const nextToken = this.current()
+          if (nextToken.type === TokenType.IDENTIFIER) {
+            this.advance()
+            name = `${name}.${nextToken.value as string}`
+          } else {
+            throw new Error(`Expected identifier after '.' at line ${this.current().line}`)
+          }
+        }
         
         // Check if it's a function call (identifier followed by '(')
         if (this.current().type === TokenType.LEFT_PAREN) {

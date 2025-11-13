@@ -47,6 +47,7 @@ export enum TokenType {
   RIGHT_BRACE = 'RIGHT_BRACE',
   LEFT_BRACKET = 'LEFT_BRACKET',
   RIGHT_BRACKET = 'RIGHT_BRACKET',
+  DOT = 'DOT', // Episode 17: Member access operator
   
   // Special
   EOF = 'EOF',
@@ -351,6 +352,10 @@ export class Lexer {
       case ']':
         this.advance()
         return { type: TokenType.RIGHT_BRACKET, value: ']', line: startLine, column: startColumn }
+
+      case '.':
+        this.advance()
+        return { type: TokenType.DOT, value: '.', line: startLine, column: startColumn }
     }
 
     // Unknown character

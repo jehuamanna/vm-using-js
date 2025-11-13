@@ -39,6 +39,7 @@ export const OPCODE_REFERENCE: OpcodeInfo[] = [
   { name: 'LOAD32_STACK', value: 0x18, description: 'Load 32-bit value from heap (address on stack)', operands: 0, example: 'LOAD32_STACK' },
   { name: 'STORE32_STACK', value: 0x19, description: 'Store 32-bit value to heap (address on stack)', operands: 0, example: 'STORE32_STACK' },
   { name: 'STORE8_STACK', value: 0x1A, description: 'Store 8-bit value to heap (address on stack)', operands: 0, example: 'STORE8_STACK' },
+  { name: 'CALL_BUILTIN', value: 0x1B, description: 'Call builtin function (builtin ID on stack)', operands: 0, example: 'CALL_BUILTIN' },
 ]
 
 // Reverse lookup: opcode name to value
