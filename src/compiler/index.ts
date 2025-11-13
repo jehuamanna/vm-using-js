@@ -6,6 +6,7 @@
 import { Lexer } from './lexer'
 import { Parser } from './parser'
 import { CodeGenerator } from './codegen'
+import { optimize, OptimizationResult } from './optimizer'
 
 export interface CompileResult {
   bytecode: number[]
@@ -16,9 +17,10 @@ export interface CompileResult {
   functionMap?: Map<string, number>
   exportMap?: Map<string, number>
   relocationTable?: Array<{ offset: number; functionName: string }>
+  optimized?: OptimizationResult // Episode 18: Optimization results
 }
 
-export function compile(source: string): CompileResult {
+export function compile(source: string, enableOptimizations: boolean = false): CompileResult {
   const errors: string[] = []
 
   try {
@@ -32,7 +34,14 @@ export function compile(source: string): CompileResult {
 
     // Step 3: Code Generation
     const generator = new CodeGenerator()
-    const bytecode = generator.generate(ast)
+    let bytecode = generator.generate(ast)
+    
+    // Episode 18: Apply optimizations if enabled
+    let optimized: OptimizationResult | undefined
+    if (enableOptimizations) {
+      optimized = optimize(bytecode, generator.getFunctionMap())
+      bytecode = optimized.bytecode
+    }
 
     return {
       bytecode,
@@ -43,6 +52,7 @@ export function compile(source: string): CompileResult {
       functionMap: generator.getFunctionMap(),
       exportMap: generator.getExportMap(),
       relocationTable: generator.getRelocationTable(),
+      optimized,
     }
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error))
